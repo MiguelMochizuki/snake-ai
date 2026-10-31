@@ -9,14 +9,14 @@ Comparamos quatro jogadores no `snake-game` v2.0.0, tabuleiro 20x20. A **imitaç
 - 30 partidas novas por jogador, com as mesmas sementes de comida (100000 a 100029), nunca usadas no treino.
 - Limite de 60 000 passos por partida. Uma partida também termina por falta de comida: 600 passos sem comer contam como morte.
 - Pontuação máxima: 397, que é o tabuleiro de 400 células com a cobra inicial de 3. Encher o tabuleiro conta como vitória.
-- Cada número vem de **um** treino e de **um** conjunto de 30 partidas. Não repetimos com várias sementes.
+- Cada número vem de **um** treino e de **um** conjunto de 30 partidas. O treino não é determinístico: ao retreinar a imitação para salvar o modelo, a média foi 397,0 (0 mortes) em vez de 393,8. Não repetimos com várias sementes.
 
 ## Resultados
 
 | Jogador | Média | Mín | Máx | Mortes |
 |---|---|---|---|---|
 | Especialista (ciclo hamiltoniano com atalhos seguros) | 397,0 | 397 | 397 | 0/30 |
-| **Imitação** (13 features, MLP 13→32→32→3, Adam) | **393,8** | 301 | 397 | 1/30 |
+| **Imitação** (13 features, MLP 13→32→32→3, Adam) | **393,8** (outro treino: 397,0) | 301 | 397 | 1/30 (outro treino: 0/30) |
 | Heurística evoluída por GA, com termo de enrolamento, 20 mil passos na evolução | 263,5 | 173 | 369 | 30/30 |
 | Heurística evoluída por GA, sem o termo, 20 mil passos na evolução | 251,7 | 122 | 385 | 30/30 |
 | DQN com features invariantes e heurística como shaping | 38,5 | 14 | 74 | 30/30 |
@@ -58,11 +58,20 @@ Por ação (reto, direita, esquerda), a rede recebe: se está bloqueada, se o ci
 - A rede aprende a regra do especialista, não descobre uma estratégia. O que ela faz de melhor é o que o especialista já faz.
 - A única morte da imitação (301 pontos) aconteceu numa partida longa. Não investigamos a causa.
 - Um treino e 30 partidas por jogador. As diferenças pequenas (por exemplo, entre as heurísticas) não são conclusivas.
-- Os pesos da rede treinada não são salvos: cada execução de `compare imitation` treina de novo. O `nn-cpp` já tem checkpoints, mas não ligamos isso.
 - Não há testes automatizados no projeto. O app imprime a comparação.
+
+## Rede salva e modo de assistir
+
+`compare imitation` grava o checkpoint (`imitation.ckpt`) e avalia a cópia recarregada, para provar que o arquivo guarda a rede treinada. A rede de `models/imitation.ckpt` enche o tabuleiro (397) nas sementes 1 e 3, em cerca de 36 mil passos. Para assistir:
+
+```bash
+./build/watch models/imitation.ckpt [semente=1] [ms por quadro=50] [desenhar a cada N passos=1]
+```
+
+Partidas completas passam de 35 mil passos; use, por exemplo, `watch models/imitation.ckpt 1 20 50`. Ctrl+C interrompe e devolve o cursor.
 
 ## Próximos passos
 
 1. Salvar a rede da imitação com o checkpoint do `nn-cpp` e criar um modo de assistir ao jogo dela no terminal.
 2. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
-3. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8.
+2. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8.

@@ -5,12 +5,10 @@
  */
 #include "expert.hpp"
 #include "heuristic.hpp"
+#include "policy_net.hpp"
 #include "snake_env.hpp"
-#include "nn/autograd/value.hpp"
-#include "nn/nn/activation.hpp"
-#include "nn/nn/linear.hpp"
+#include "nn/checkpoint.hpp"
 #include "nn/nn/loss.hpp"
-#include "nn/nn/sequential.hpp"
 #include "nn/optim/adam.hpp"
 
 #include <algorithm>
@@ -35,6 +33,7 @@ const int IMITATION_GAMES = 60;
 const int IMITATION_MAX_STEPS = 50000;
 const int IMITATION_STRIDE = 7;  // keeps one state in seven: neighbouring states are near copies
 const int IMITATION_EPOCHS = 8;
+const char* const IMITATION_CHECKPOINT = "imitation.ckpt";
 
 const int DQN_STEPS = 300000;
 const size_t DQN_BATCH = 64;
@@ -43,41 +42,6 @@ const int DQN_WARMUP = 2000;
 const int DQN_SYNC = 1000;
 const float DQN_GAMMA = 0.95f;
 const float DQN_LR = 1e-3f;
-
-/**
- * Builds the shared network shape
- *
- * Parameters:
- * size_t hidden: Width of both hidden layers
- * size_t inputs: Number of features
- *
- * Returns Sequential: FEATURES -> hidden -> hidden -> ACTIONS
- */
-Sequential makeNet(size_t hidden, size_t inputs = F) {
-	Sequential net;
-	net.add(std::make_unique<Linear>(inputs, hidden));
-	net.add(std::make_unique<ReLU>());
-	net.add(std::make_unique<Linear>(hidden, hidden));
-	net.add(std::make_unique<ReLU>());
-	net.add(std::make_unique<Linear>(hidden, A));
-	return net;
-}
-
-/**
- * Index of the largest output for a batch of one state
- *
- * Parameters:
- * Sequential& net: The network
- * const std::vector<float>& features: One state
- *
- * Returns int: Best action
- */
-int greedy(Sequential& net, const std::vector<float>& features) {
-	NoGradGuard noGrad;
-	Value out = net.forward(Value::leaf(Tensor({1, features.size()}, features), false));
-	const std::vector<float>& q = out.data().data();
-	return static_cast<int>(std::max_element(q.begin(), q.end()) - q.begin());
-}
 
 /**
  * Plays fresh games with a policy and prints the result
@@ -152,7 +116,12 @@ void imitation() {
 		std::printf("  epoch %d loss %.4f\n", epoch, total / batches);
 		std::fflush(stdout);
 	}
-	evaluate("imitation", [&](const SnakeEnv& env) { return greedy(net, env.features()); });
+	// Save, then evaluate the reloaded copy so the file is proven to hold the trained network
+	save_checkpoint(IMITATION_CHECKPOINT, net, nullptr, IMITATION_EPOCHS);
+	std::printf("  saved %s\n", IMITATION_CHECKPOINT);
+	Sequential loaded = makeNet(32);
+	load_checkpoint(IMITATION_CHECKPOINT, loaded);
+	evaluate("imitation", [&](const SnakeEnv& env) { return greedy(loaded, env.features()); });
 }
 
 /**

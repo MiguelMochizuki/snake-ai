@@ -18,7 +18,8 @@ Os dois projetos entram como submódulos em `deps/`: `snake-game` na tag v2.0.0 
 
 ```bash
 ./build/compare expert        # jogador do ciclo hamiltoniano
-./build/compare imitation     # treina a rede por imitação e avalia
+./build/compare imitation     # treina a rede por imitação, grava imitation.ckpt e avalia
+./build/watch models/imitation.ckpt [semente] [ms] [N]   # assiste a rede jogar no terminal
 ./build/compare dqn           # DQN com as features do ciclo
 ./build/compare dqn-ego GENOME   # DQN com features invariantes e shaping
 ./build/compare ga GENOME     # avalia a heurística evoluída
@@ -39,3 +40,6 @@ Para ver saída durante o treino, use `stdbuf -oL`, porque o stdout fica em buff
 | `include/heuristic.hpp`, `src/heuristic.cpp` | Heurística invariante com pesos dependentes do tamanho |
 | `apps/compare.cpp` | Avalia e treina expert, imitação, DQN e heurística |
 | `apps/evolve.cpp` | Algoritmo genético |
+| `apps/watch.cpp` | Modo de assistir: carrega um checkpoint e joga no terminal |
+| `include/policy_net.hpp` | Arquitetura da rede e escolha gulosa, compartilhadas |
+| `models/imitation.ckpt` | Rede treinada por imitação |

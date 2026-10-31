@@ -37,3 +37,7 @@ find_package(Threads REQUIRED)
 add_executable(evolve apps/evolve.cpp)
 target_link_libraries(evolve PRIVATE snake_ai_core Threads::Threads)
 target_compile_options(evolve PRIVATE -Wall -Wextra -Wpedantic)
+
+add_executable(watch apps/watch.cpp)
+target_link_libraries(watch PRIVATE snake_ai_core nn_core)
+target_compile_options(watch PRIVATE -Wall -Wextra -Wpedantic)
