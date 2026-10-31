@@ -12,15 +12,10 @@
 #include <stdexcept>
 #include <string>
 
-namespace {
-// Gives up on a game that wanders without eating; above the longest cycle walk to a food
-const int STARVE_STEPS = 600;
-}  // namespace
-
 const int SnakeEnv::DX[4] = {0, 0, -1, 1};
 const int SnakeEnv::DY[4] = {-1, 1, 0, 0};
 
-SnakeEnv::SnakeEnv(unsigned seed) : state_(20, 20, 0, seed) {
+SnakeEnv::SnakeEnv(unsigned seed, int size) : state_(size, size, 0, seed), n_(size), visits_(size * size, 0) {
 }
 
 int SnakeEnv::turn(int dir, int action) {
@@ -189,7 +184,7 @@ bool SnakeEnv::step(int action) {
 	}
 	bool ate = state_.getScore() > before;
 	sinceFood_ = ate ? 0 : sinceFood_ + 1;
-	if (sinceFood_ >= STARVE_STEPS) {
+	if (sinceFood_ >= starveLimit()) {
 		dead_ = true;
 	}
 	return ate;

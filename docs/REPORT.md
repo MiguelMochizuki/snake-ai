@@ -138,6 +138,33 @@ O caminho até esse resultado teve dois tropeços, que ficam registrados:
 
 Limitações: as features já contêm a resposta do professor (a regra é "o menor entre os seguros"), então a rede aprende a ler essa informação, não a descobri-la. O teste de segurança por árvore (`treeFor`) roda a cada passo e é mais caro que a rede. Um treino e 12 partidas.
 
+## Outras escalas do tabuleiro, sem retreinar
+
+`experiments/scale_test.cpp` joga o A* seguro, o ciclo e a rede treinada em 20x20 (`models/imitation_astar.ckpt`, sem retreinar) em tabuleiros de 10x10, 20x20 e 40x40. Para isso o ambiente, os ladrilhos e os modos passaram a aceitar o tamanho do lado (par); a construção do ciclo foi validada nos três (árvores aleatórias, ciclo único, prefixos aceitos). O limite de fome e o limite de passos sem comer para voltar ao ciclo crescem com o número de células (1,5 e 5/8 vezes), assim como o teto de passos por partida (200 por célula). As features da rede não dependem da escala, então os mesmos pesos servem.
+
+12 partidas em 10x10 e 20x20, 4 em 40x40 (as partidas do 40x40 são longas e a rede joga em uma thread só). Pontuação máxima = células menos 3.
+
+| Tabuleiro | Jogador | Pontos | Passos por partida (por célula) | Não encheu |
+|---|---|---|---|---|
+| 10x10 | A* seguro (professor) | 97 / 97 | 1330 (13,3) | 0/12 |
+| 10x10 | Ciclo | 97 / 97 | 2431 (24,3) | 0/12 |
+| 10x10 | **Rede (pesos do 20x20)** | **97 / 97** | **1330 (13,3)** | **0/12** |
+| 20x20 | A* seguro | 397 / 397 | 15 792 (39,5) | 0/12 |
+| 20x20 | Ciclo | 397 / 397 | 39 574 (98,9) | 0/12 |
+| 20x20 | Rede | 397 / 397 | 15 792 (39,5) | 0/12 |
+| 40x40 | A* seguro | 1597 / 1597 | 199 338 (124,6) | 0/4 |
+| 40x40 | Ciclo | 481,5 / 1597 | 320 000 (200,0) | 4/4 (interrompido no teto de passos) |
+| 40x40 | **Rede (pesos do 20x20)** | **1597 / 1597** | **199 338 (124,6)** | **0/4** |
+
+A rede treinada só em 20x20 enche o tabuleiro em 10x10 e em 40x40, com exatamente os mesmos passos do professor, ou seja, copia a trajetória inteira. Isso confirma o que as features já sugeriam: movimento seguro, "passos a mais que o melhor seguro" e "próximo passo do ciclo" não mudam com a escala.
+
+Observações:
+
+- O A* seguro gasta 13,3, 39,5 e 124,6 passos por célula em 10, 20 e 40: cerca de 3 vezes mais por dobra do lado. O ciclo é pior em todas as escalas (24,3 e 98,9 nas duas primeiras).
+- O ciclo em 40x40 não terminou: parou no teto de 320 000 passos com 481,5 pontos em média. Não dá para dizer quantos passos levaria; só que levaria muito mais que o A\* (199 338).
+- A rede usa o filtro de segurança e a guarda contra laços do código (as mesmas do professor); o que é aprendido é a escolha entre movimentos seguros.
+- A comparação do 40x40 tem 4 partidas.
+
 ## Rede salva e modo de assistir
 
 `compare imitation` grava o checkpoint (`imitation.ckpt`) e avalia a cópia recarregada, para provar que o arquivo guarda a rede treinada. A rede de `models/imitation.ckpt` enche o tabuleiro (397) nas sementes 1 e 3, em cerca de 36 mil passos. Para assistir:

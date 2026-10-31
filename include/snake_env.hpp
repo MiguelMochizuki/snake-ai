@@ -50,7 +50,8 @@ class SnakeEnv {
 	bool won_ = false;
 	int sinceFood_ = 0;
 	std::deque<int> recent_;
-	std::array<int, 400> visits_{};
+	int n_;
+	std::vector<int> visits_;
 
 public:
 	static const int EGO_PER_ACTION = 7;
@@ -64,8 +65,9 @@ public:
 	/**
 	 * Parameters:
 	 * unsigned seed: Seed for food placement
+	 * int size: Board side in cells, even (default 20). The cycle features (features(), info()) only support 20
 	 */
-	explicit SnakeEnv(unsigned seed);
+	explicit SnakeEnv(unsigned seed, int size = 20);
 
 	/**
 	 * Returns FEATURES floats: per action (straight, right, left) blocked, allowed and remaining cycle distance to the food over CYCLE_LEN; then the heading one-hot (up, down, left, right)
@@ -147,7 +149,14 @@ public:
 	int score() const { return state_.getScore() + (won_ ? 1 : 0); }
 	int dir() const { return dir_; }
 	int headVisits() const { return visits_[state_.getSnake().getHead()->getY() * state_.getCols() + state_.getSnake().getHead()->getX()]; }
-	float lengthFraction() const { return static_cast<float>(state_.getSnake().getLength()) / CYCLE_LEN; }
+	float lengthFraction() const { return static_cast<float>(state_.getSnake().getLength()) / (n_ * n_); }
+	int size() const { return n_; }
+	/** Score when the board is full: every cell but the initial 3 */
+	int maxScore() const { return n_ * n_ - 3; }
+	/** Steps without food after which a game counts as lost: 1.5 cells per cell of the board (600 on 20x20) */
+	int starveLimit() const { return n_ * n_ * 3 / 2; }
+	/** Steps without food after which a player should fall back to following the cycle: 5/8 cells (250 on 20x20) */
+	int loopGuard() const { return n_ * n_ * 5 / 8; }
 	const GameState& state() const { return state_; }
 };
 

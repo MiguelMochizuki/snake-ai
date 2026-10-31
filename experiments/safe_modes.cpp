@@ -15,21 +15,23 @@
 namespace {
 
 /**
- * Checks that random spanning trees give one Hamiltonian cycle and that treeFor accepts any prefix of it as a body
+ * Checks, for an n x n board, that random spanning trees give one Hamiltonian cycle and that treeFor accepts any prefix of it as a body
  */
-bool checkConstruction() {
+bool checkConstruction(int n) {
 	std::mt19937 rng(3);
 	for (int trial = 0; trial < 50; ++trial) {
 		// Random spanning tree by random edge order
-		std::vector<int> edges(TILE_EDGES);
-		for (int i = 0; i < TILE_EDGES; ++i) edges[i] = i;
+		const int t = n / 2, edgeCount = tileEdgeCount(n);
+		std::vector<int> edges(edgeCount);
+		for (int i = 0; i < edgeCount; ++i) edges[i] = i;
 		std::shuffle(edges.begin(), edges.end(), rng);
-		Tree tree{};
-		std::vector<int> p(100);
-		for (int i = 0; i < 100; ++i) p[i] = i;
+		Tree tree(edgeCount, 0);
+		std::vector<int> p(t * t);
+		for (int i = 0; i < t * t; ++i) p[i] = i;
 		std::function<int(int)> find = [&](int x) { return p[x] == x ? x : p[x] = find(p[x]); };
 		for (int e : edges) {
-			int a = e < 90 ? (e / 9) * 10 + e % 9 : e - 90, b = e < 90 ? a + 1 : a + 10;
+			int a, b;
+			tileEdgeEnds(n, e, &a, &b);
 			if (find(a) != find(b)) {
 				p[find(a)] = find(b);
 				tree[e] = 1;
@@ -40,25 +42,26 @@ bool checkConstruction() {
 		Cell start{0, 0}, neck{-1, -1};
 		for (int d = 0; d < 4; ++d) {
 			Cell c{DX[d], DY[d]};
-			if (c.first >= 0 && c.second >= 0 && onCycle(tree, start, c)) neck = c;
+			if (c.first >= 0 && c.second >= 0 && onCycle(tree, n, start, c)) neck = c;
 		}
-		for (int y = 0; y < 20; ++y) for (int x = 0; x < 20; ++x) {
+		for (int y = 0; y < n; ++y) for (int x = 0; x < n; ++x) {
 			int degree = 0;
 			for (int d = 0; d < 4; ++d) {
 				int nx = x + DX[d], ny = y + DY[d];
-				if (nx >= 0 && nx < 20 && ny >= 0 && ny < 20 && onCycle(tree, {x, y}, {nx, ny})) ++degree;
+				if (nx >= 0 && nx < n && ny >= 0 && ny < n && onCycle(tree, n, {x, y}, {nx, ny})) ++degree;
 			}
 			if (degree != 2) { std::printf("trial %d: cell (%d,%d) has %d cycle neighbours\n", trial, x, y, degree); return false; }
 		}
-		std::vector<int> order = cycleOrder(tree, start, neck);
+		std::vector<int> order = cycleOrder(tree, n, start, neck);
 		for (int v : order) if (v < 0) { std::printf("trial %d: cycle misses cells\n", trial); return false; }
 		// A body of the first k cells along the cycle must be accepted
-		std::vector<Cell> cells(400);
-		for (int y = 0; y < 20; ++y) for (int x = 0; x < 20; ++x) cells[order[y * 20 + x]] = {x, y};
-		for (int k : {2, 10, 77, 250, 400}) {
+		std::vector<Cell> cells(n * n);
+		for (int y = 0; y < n; ++y) for (int x = 0; x < n; ++x) cells[order[y * n + x]] = {x, y};
+		for (int k : {2, 10, 77, 250, n * n}) {
+			if (k > n * n) continue;
 			std::vector<Cell> body(cells.begin(), cells.begin() + k);
 			Tree t;
-			if (!treeFor(body, t) || !consistent(t, body)) { std::printf("trial %d: prefix %d rejected\n", trial, k); return false; }
+			if (!treeFor(body, n, t) || !consistent(t, n, body)) { std::printf("trial %d: prefix %d rejected\n", trial, k); return false; }
 		}
 	}
 	return true;
@@ -100,7 +103,7 @@ Result play(const std::function<Mode(const SnakeEnv&)>& pick, int games) {
 
 int main(int argc, char** argv) {
 	int games = argc > 1 ? std::atoi(argv[1]) : 12;
-	std::printf("construction: %s\n", checkConstruction() ? "ok" : "FAILED");
+	for (int n : {10, 20, 40}) std::printf("construction %dx%d: %s\n", n, n, checkConstruction(n) ? "ok" : "FAILED");
 	std::fflush(stdout);
 	auto show = [&](const char* name, std::function<Mode(const SnakeEnv&)> pick) {
 		Result r = play(pick, games);

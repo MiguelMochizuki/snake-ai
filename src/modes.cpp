@@ -17,13 +17,13 @@ std::vector<Cell> bodyCells(const SnakeEnv& env) {
 }
 
 int SafeAgent::act(const SnakeEnv& env, Mode mode) {
-	const int W = 20;
+	const int W = env.size(), N = W * W;
 	std::vector<Cell> body = bodyCells(env);
 	const Cell head = body[0];
 	const Food& food = env.state().getFood();
 
-	if (!haveTree_ || !consistent(tree_, body)) {
-		haveTree_ = treeFor(body, tree_);
+	if (!haveTree_ || !consistent(tree_, W, body)) {
+		haveTree_ = treeFor(body, W, tree_);
 	}
 	// Cell the action leads to
 	auto target = [&](int a) {
@@ -31,7 +31,7 @@ int SafeAgent::act(const SnakeEnv& env, Mode mode) {
 		return Cell{head.first + SnakeEnv::DX[d], head.second + SnakeEnv::DY[d]};
 	};
 
-	std::vector<int> order = cycleOrder(tree_, head, body[1]);
+	std::vector<int> order = cycleOrder(tree_, W, head, body[1]);
 	auto cycleStep = [&]() {
 		for (int a = 0; a < SnakeEnv::ACTIONS; ++a) {
 			Cell c = target(a);
@@ -64,13 +64,13 @@ int SafeAgent::act(const SnakeEnv& env, Mode mode) {
 		Cell c = target(a);
 		if (env.blocked(c.first, c.second)) continue;
 		// A* ranks by steps over free cells; SHORTCUT by steps along the current cycle, the classic jump-ahead rule
-		int dd = mode == ASTAR ? dist[c.second * W + c.first] : ((rf - order[c.second * W + c.first]) % 400 + 400) % 400;
+		int dd = mode == ASTAR ? dist[c.second * W + c.first] : ((rf - order[c.second * W + c.first]) % N + N) % N;
 		if (dd < 0 || dd >= bestDist) continue;
 		// Body after the move: the tail stays only when this move eats
 		std::vector<Cell> next{c};
 		next.insert(next.end(), body.begin(), body.end() - (c.first == food.getX() && c.second == food.getY() ? 0 : 1));
 		Tree t;
-		if (treeFor(next, t)) {
+		if (treeFor(next, W, t)) {
 			best = a;
 			bestDist = dd;
 		}
@@ -79,14 +79,14 @@ int SafeAgent::act(const SnakeEnv& env, Mode mode) {
 }
 
 std::vector<float> SafeAgent::features(const SnakeEnv& env) {
-	const int W = 20;
+	const int W = env.size(), N = W * W;
 	std::vector<Cell> body = bodyCells(env);
 	const Cell head = body[0], tail = body.back();
 	const Food& food = env.state().getFood();
-	if (!haveTree_ || !consistent(tree_, body)) {
-		haveTree_ = treeFor(body, tree_);
+	if (!haveTree_ || !consistent(tree_, W, body)) {
+		haveTree_ = treeFor(body, W, tree_);
 	}
-	std::vector<int> order = cycleOrder(tree_, head, body[1]);
+	std::vector<int> order = cycleOrder(tree_, W, head, body[1]);
 
 	std::vector<int> dist(W * W, -1);
 	std::queue<Cell> q;
@@ -110,29 +110,29 @@ std::vector<float> SafeAgent::features(const SnakeEnv& env) {
 		std::vector<Cell> next{c};
 		next.insert(next.end(), body.begin(), body.end() - (c.first == food.getX() && c.second == food.getY() ? 0 : 1));
 		Tree t;
-		safe += treeFor(next, t);
+		safe += treeFor(next, W, t);
 	}
 	const int rf = order[food.getY() * W + food.getX()], dt = order[tail.second * W + tail.first];
 	const int path = dist[head.second * W + head.first];
-	return {static_cast<float>(body.size()) / 400.0f,
-		static_cast<float>(std::abs(head.first - food.getX()) + std::abs(head.second - food.getY())) / 38.0f,
-		path < 0 ? 1.0f : static_cast<float>(path) / 400.0f,
-		static_cast<float>(rf) / 400.0f,
-		static_cast<float>(dt) / 400.0f,
-		std::min(1.0f, static_cast<float>(env.sinceFood()) / 250.0f),
+	return {static_cast<float>(body.size()) / static_cast<float>(N),
+		static_cast<float>(std::abs(head.first - food.getX()) + std::abs(head.second - food.getY())) / static_cast<float>(2 * (W - 1)),
+		path < 0 ? 1.0f : static_cast<float>(path) / static_cast<float>(N),
+		static_cast<float>(rf) / static_cast<float>(N),
+		static_cast<float>(dt) / static_cast<float>(N),
+		std::min(1.0f, static_cast<float>(env.sinceFood()) / static_cast<float>(env.loopGuard())),
 		rf < dt ? 1.0f : 0.0f,
 		static_cast<float>(safe) / 3.0f};
 }
 
 std::vector<float> SafeAgent::actionFeatures(const SnakeEnv& env) {
-	const int W = 20;
+	const int W = env.size(), N = W * W;
 	std::vector<Cell> body = bodyCells(env);
 	const Cell head = body[0];
 	const Food& food = env.state().getFood();
-	if (!haveTree_ || !consistent(tree_, body)) {
-		haveTree_ = treeFor(body, tree_);
+	if (!haveTree_ || !consistent(tree_, W, body)) {
+		haveTree_ = treeFor(body, W, tree_);
 	}
-	std::vector<int> order = cycleOrder(tree_, head, body[1]);
+	std::vector<int> order = cycleOrder(tree_, W, head, body[1]);
 	std::vector<int> dist(W * W, -1);
 	std::queue<Cell> q;
 	dist[food.getY() * W + food.getX()] = 0;
@@ -160,7 +160,7 @@ std::vector<float> SafeAgent::actionFeatures(const SnakeEnv& env) {
 		std::vector<Cell> next{c};
 		next.insert(next.end(), body.begin(), body.end() - (c.first == food.getX() && c.second == food.getY() ? 0 : 1));
 		Tree t;
-		Option o{false, treeFor(next, t), order[c.second * W + c.first] == 1, dist[c.second * W + c.first]};
+		Option o{false, treeFor(next, W, t), order[c.second * W + c.first] == 1, dist[c.second * W + c.first]};
 		if (o.safe && o.path >= 0) bestSafe = std::min(bestSafe, o.path);
 		options.push_back(o);
 	}

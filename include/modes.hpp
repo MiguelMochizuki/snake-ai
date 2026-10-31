@@ -29,7 +29,7 @@ std::vector<Cell> bodyCells(const SnakeEnv& env);
  * Chooses a move with a mode; keeps the spanning tree between calls so Hamiltonian modes follow one stable cycle
  */
 class SafeAgent {
-	Tree tree_{};
+	Tree tree_;
 	bool haveTree_ = false;
 
 public:

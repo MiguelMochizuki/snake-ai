@@ -25,6 +25,7 @@ Os dois projetos entram como submódulos em `deps/`: `snake-game` na tag v2.0.0 
 ./build/compare ga GENOME     # avalia a heurística evoluída
 ./build/safe_modes [partidas]   # modos A*, atalhos e ciclo com garantia
 ./build/selector              # seletor de modo aprendido
+./build/scale_test            # A* seguro, ciclo e a rede treinada em 20x20 nos tabuleiros 10x10, 20x20 e 40x40
 ./build/imitate_astar         # treina a rede que imita o A* seguro e grava imitation_astar.ckpt
 ./build/watch models/imitation_astar.ckpt 1 120 1 astar   # assiste a essa rede
 ./build/bfs_safe [partidas]   # experimento do menor caminho
@@ -49,6 +50,7 @@ Para ver saída durante o treino, use `stdbuf -oL`, porque o stdout fica em buff
 | `include/modes.hpp`, `src/modes.cpp` | Modos A*, atalhos e ciclo, todos com a garantia do esquema de ladrilhos |
 | `experiments/safe_modes.cpp` | Valida a construção e compara os modos e trocas fixas |
 | `apps/selector.cpp` | Treina o seletor de modo por rollouts |
+| `experiments/scale_test.cpp` | Joga em tabuleiros de 10, 20 e 40 de lado sem retreinar |
 | `experiments/bfs_safe.cpp` | Experimento: menor caminho por BFS com teste de segurança da cauda |
 | `apps/watch.cpp` | Modo de assistir: carrega um checkpoint e joga no terminal |
 | `include/policy_net.hpp` | Arquitetura da rede e escolha gulosa, compartilhadas |

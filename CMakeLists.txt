@@ -56,3 +56,7 @@ target_compile_options(selector PRIVATE -Wall -Wextra -Wpedantic)
 add_executable(imitate_astar apps/imitate_astar.cpp)
 target_link_libraries(imitate_astar PRIVATE snake_ai_core nn_core Threads::Threads)
 target_compile_options(imitate_astar PRIVATE -Wall -Wextra -Wpedantic)
+
+add_executable(scale_test experiments/scale_test.cpp)
+target_link_libraries(scale_test PRIVATE snake_ai_core nn_core Threads::Threads)
+target_compile_options(scale_test PRIVATE -Wall -Wextra -Wpedantic)
