@@ -26,7 +26,7 @@ Os dois projetos entram como submódulos em `deps/`: `snake-game` na tag v2.0.0 
 ./build/safe_modes [partidas]   # modos A*, atalhos e ciclo com garantia
 ./build/selector              # seletor de modo aprendido
 ./build/imitate_astar         # treina a rede que imita o A* seguro e grava imitation_astar.ckpt
-./build/watch models/imitation_astar.ckpt 1 20 50 astar   # assiste a essa rede
+./build/watch models/imitation_astar.ckpt 1 120 1 astar   # assiste a essa rede
 ./build/bfs_safe [partidas]   # experimento do menor caminho
 ./build/evolve GENOME [passos] [nocoil]   # algoritmo genético
 ```

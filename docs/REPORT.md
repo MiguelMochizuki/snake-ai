@@ -144,10 +144,10 @@ Limitações: as features já contêm a resposta do professor (a regra é "o men
 
 ```bash
 ./build/watch models/imitation.ckpt [semente=1] [ms por quadro=50] [desenhar a cada N passos=1]
-./build/watch models/imitation_astar.ckpt 1 20 50 astar   # a rede que imita o A* seguro
+./build/watch models/imitation_astar.ckpt 1 120 1 astar   # a rede que imita o A* seguro
 ```
 
-Partidas completas passam de 35 mil passos; use, por exemplo, `watch models/imitation.ckpt 1 20 50`. Ctrl+C interrompe e devolve o cursor.
+Partidas completas passam de 35 mil passos; o padrão (50 ms, todos os passos) é para ver o começo; use `120 1` para mais devagar e, para chegar ao fim, algo como `20 50` (20 ms, um quadro a cada 50 passos). Ctrl+C interrompe e devolve o cursor.
 
 ## Próximos passos
 
