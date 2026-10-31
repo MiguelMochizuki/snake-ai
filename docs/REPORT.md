@@ -72,6 +72,5 @@ Partidas completas passam de 35 mil passos; use, por exemplo, `watch models/imit
 
 ## Próximos passos
 
-1. Salvar a rede da imitação com o checkpoint do `nn-cpp` e criar um modo de assistir ao jogo dela no terminal.
-2. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
-2. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8.
+1. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
+2. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8 a 397.
