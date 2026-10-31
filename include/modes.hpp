@@ -55,6 +55,19 @@ public:
 	std::vector<float> features(const SnakeEnv& env);
 
 	static const int FEATURES = 8;
+	static const int ACTION_FEATURES = 4 * SnakeEnv::ACTIONS;
+
+	/**
+	 * Per-action features, relative to the heading so they do not depend on rotation: for each of straight, right and left
+	 * blocked, safe (the body stays on a Hamiltonian cycle after the move), how many steps longer its free path to the food is than the best
+	 * safe move's, capped at 4 and over 4 (1 when blocked or no path), and whether the move is the next cell of the cycle
+	 *
+	 * Parameters:
+	 * const SnakeEnv& env: Current game
+	 *
+	 * Returns std::vector<float>: ACTION_FEATURES values
+	 */
+	std::vector<float> actionFeatures(const SnakeEnv& env);
 };
 
 #endif

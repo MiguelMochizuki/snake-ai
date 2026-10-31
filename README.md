@@ -1,6 +1,6 @@
 # snake-ai
 
-Agentes que jogam o [snake-game](https://github.com/MiguelMochizuki/snake-game), treinados com a rede neural do [nn-cpp](https://github.com/MiguelMochizuki/nn-cpp). A abordagem escolhida é a **imitação**: uma rede pequena aprende a copiar um jogador que segue um ciclo hamiltoniano. Em 30 partidas novas ela faz em média 393,8 pontos de um máximo de 397.
+Agentes que jogam o [snake-game](https://github.com/MiguelMochizuki/snake-game), treinados com a rede neural do [nn-cpp](https://github.com/MiguelMochizuki/nn-cpp). A abordagem escolhida é a **imitação**: uma rede pequena aprende a copiar um jogador especialista. A melhor versão copia um A* que só faz movimentos que mantêm o corpo sobre um ciclo hamiltoniano de ladrilhos 2x2, o que garante nunca ficar preso. Ela faz 397 pontos (tabuleiro cheio) em cerca de 15 800 passos, sem mortes em 12 partidas. A primeira versão copiava o ciclo hamiltoniano puro: 393,8 a 397 pontos em cerca de 37 000 passos.
 
 Os resultados e as decisões estão em [docs/REPORT.md](docs/REPORT.md).
 
@@ -25,6 +25,8 @@ Os dois projetos entram como submódulos em `deps/`: `snake-game` na tag v2.0.0 
 ./build/compare ga GENOME     # avalia a heurística evoluída
 ./build/safe_modes [partidas]   # modos A*, atalhos e ciclo com garantia
 ./build/selector              # seletor de modo aprendido
+./build/imitate_astar         # treina a rede que imita o A* seguro e grava imitation_astar.ckpt
+./build/watch models/imitation_astar.ckpt 1 20 50 astar   # assiste a essa rede
 ./build/bfs_safe [partidas]   # experimento do menor caminho
 ./build/evolve GENOME [passos] [nocoil]   # algoritmo genético
 ```
@@ -50,4 +52,6 @@ Para ver saída durante o treino, use `stdbuf -oL`, porque o stdout fica em buff
 | `experiments/bfs_safe.cpp` | Experimento: menor caminho por BFS com teste de segurança da cauda |
 | `apps/watch.cpp` | Modo de assistir: carrega um checkpoint e joga no terminal |
 | `include/policy_net.hpp` | Arquitetura da rede e escolha gulosa, compartilhadas |
-| `models/imitation.ckpt` | Rede treinada por imitação |
+| `apps/imitate_astar.cpp`, `include/astar_policy.hpp` | Imitação do A* seguro e a política da rede |
+| `models/imitation.ckpt` | Rede que imita o ciclo hamiltoniano |
+| `models/imitation_astar.ckpt` | Rede que imita o A* seguro (a melhor) |

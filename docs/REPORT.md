@@ -2,7 +2,7 @@
 
 ## Resumo
 
-**Atualização:** o esquema de ladrilhos (seção abaixo) deu um jogador mais rápido que o ciclo e igualmente seguro: o A* com garantia faz 397 pontos em cerca de 15 800 passos, contra 39 600 do ciclo. A rede treinada ainda imita o ciclo; imitar o A* seguro é o próximo passo.
+**Atualização:** o esquema de ladrilhos (seção abaixo) deu um jogador mais rápido que o ciclo e igualmente seguro: o A* com garantia faz 397 pontos em cerca de 15 800 passos, contra 39 600 do ciclo. Uma rede treinada para imitar esse A* seguro (seção "Imitação do A* seguro") reproduz o professor: 397 pontos, 15 792 passos, 0 mortes em 12 partidas. A imitação escolhida passa a ser essa; a rede do ciclo fica como primeira versão.
 
 Comparamos quatro jogadores no `snake-game` v2.0.0, tabuleiro 20x20. A **imitação** foi escolhida: uma rede 13→32→32→3 treinada para copiar o jogador do ciclo hamiltoniano chega a 393,8 pontos em média, de um máximo de 397 (tabuleiro cheio). Os dois caminhos que aprendem sem professor ficaram bem atrás.
 
@@ -117,18 +117,41 @@ O seletor aprendido escolhe A\* em 98% dos passos e termina em 15 792 passos, ig
 
 **Conclusão.** Escolher entre os três modos rende pouco; o ganho veio da garantia de segurança, não da escolha. O A\* seguro é o melhor jogador em velocidade e dá 397 sempre.
 
+## Imitação do A* seguro
+
+`apps/imitate_astar.cpp` treina uma rede 12→32→32→3 para imitar o A* seguro (188 270 estados de 48 partidas do professor, um estado em quatro, Adam, 15 épocas). As 12 features são, por ação (reto, direita, esquerda): bloqueada, segura (o corpo continua sobre algum ciclo), quantos passos o caminho livre até a comida é mais longo que o do melhor movimento seguro (limitado a 4, dividido por 4) e se é o próximo passo do ciclo. Não dependem de rotação.
+
+12 partidas, mesmas sementes (100000 a 100011), avaliando a cópia recarregada do checkpoint:
+
+| Jogador | Pontos | Passos por partida | Mortes |
+|---|---|---|---|
+| A\* seguro (professor) | 397 | 15 792 | 0/12 |
+| Rede, sem filtro | 397,0 | 15 792 | 0/12 |
+| Rede, só movimentos seguros | 397,0 | 15 792 | 0/12 |
+
+A rede nunca escolheu um movimento inseguro, então o filtro não muda nada aqui. Ele continua no código como garantia. Com 2,5 vezes menos passos que a rede do ciclo (39 574), é o melhor jogador treinado.
+
+O caminho até esse resultado teve dois tropeços, que ficam registrados:
+
+1. **Distância dividida por 400.** Na primeira versão a feature de distância valia a distância sobre 400, então dois movimentos diferiam por 0,0025 e a rede não os distinguia. Ela girava no começo, sem comer (4 de 12 partidas terminaram em fome com 0 pontos; média 201 a 264, 5 a 6 mortes). Trocar por "passos a mais que o melhor movimento seguro" resolveu, com a loss em 0,014.
+2. **Guarda contra laços.** O professor passa a seguir o ciclo depois de 250 passos sem comer; a rede recebe a mesma guarda no código que joga (`astarNetAction`). Isso não está aprendido pela rede.
+
+Limitações: as features já contêm a resposta do professor (a regra é "o menor entre os seguros"), então a rede aprende a ler essa informação, não a descobri-la. O teste de segurança por árvore (`treeFor`) roda a cada passo e é mais caro que a rede. Um treino e 12 partidas.
+
 ## Rede salva e modo de assistir
 
 `compare imitation` grava o checkpoint (`imitation.ckpt`) e avalia a cópia recarregada, para provar que o arquivo guarda a rede treinada. A rede de `models/imitation.ckpt` enche o tabuleiro (397) nas sementes 1 e 3, em cerca de 36 mil passos. Para assistir:
 
 ```bash
 ./build/watch models/imitation.ckpt [semente=1] [ms por quadro=50] [desenhar a cada N passos=1]
+./build/watch models/imitation_astar.ckpt 1 20 50 astar   # a rede que imita o A* seguro
 ```
 
 Partidas completas passam de 35 mil passos; use, por exemplo, `watch models/imitation.ckpt 1 20 50`. Ctrl+C interrompe e devolve o cursor.
 
 ## Próximos passos
 
-1. Treinar a rede para imitar o A* seguro. As features por ação seriam: se o movimento mantém o corpo sobre algum ciclo (teste de árvore), distância até a comida depois do movimento e bloqueio. O professor passa a ser 2,5 vezes mais rápido.
+1. Aprender a guarda contra laços e o teste de segurança, que hoje estão no código (ver seção acima), ou medir quanto a rede perde sem eles.
 2. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
-3. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8 a 397.
+3. Repetir o treino com várias sementes, já que o resultado da rede do A* vem de um treino e 12 partidas.
+4. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8 a 397.

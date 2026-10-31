@@ -52,3 +52,7 @@ target_compile_options(safe_modes PRIVATE -Wall -Wextra -Wpedantic)
 add_executable(selector apps/selector.cpp)
 target_link_libraries(selector PRIVATE snake_ai_core nn_core Threads::Threads)
 target_compile_options(selector PRIVATE -Wall -Wextra -Wpedantic)
+
+add_executable(imitate_astar apps/imitate_astar.cpp)
+target_link_libraries(imitate_astar PRIVATE snake_ai_core nn_core Threads::Threads)
+target_compile_options(imitate_astar PRIVATE -Wall -Wextra -Wpedantic)

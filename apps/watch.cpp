@@ -3,6 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Plays one game in the terminal with a network loaded from a checkpoint
  */
+#include "astar_policy.hpp"
 #include "policy_net.hpp"
 #include "nn/checkpoint.hpp"
 
@@ -56,14 +57,16 @@ void draw(const SnakeEnv& env, int step) {
 
 int main(int argc, char** argv) {
 	if (argc < 2) {
-		std::fprintf(stderr, "usage: %s CHECKPOINT [seed=1] [ms per frame=50] [draw every N steps=1]\n", argv[0]);
+		std::fprintf(stderr, "usage: %s CHECKPOINT [seed=1] [ms per frame=50] [draw every N steps=1] [astar]\n", argv[0]);
 		return 1;
 	}
 	unsigned seed = argc > 2 ? static_cast<unsigned>(std::atoi(argv[2])) : 1;
 	int ms = argc > 3 ? std::atoi(argv[3]) : 50;
 	int stride = argc > 4 ? std::max(1, std::atoi(argv[4])) : 1;
 
-	nn::Sequential net = makeNet(32);
+	const bool astar = argc > 5 && std::string(argv[5]) == "astar";  // checkpoint from imitate_astar
+	nn::Sequential net = astar ? makeAstarNet() : makeNet(32);
+	SafeAgent agent;
 	try {
 		nn::load_checkpoint(argv[1], net);
 	} catch (const std::exception& e) {
@@ -80,7 +83,7 @@ int main(int argc, char** argv) {
 			draw(env, step);
 			std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 		}
-		env.step(greedy(net, env.features()));
+		env.step(astar ? astarNetAction(net, agent.actionFeatures(env), env.sinceFood() > 250, true) : greedy(net, env.features()));
 		++step;
 	}
 	draw(env, step);

@@ -123,3 +123,52 @@ std::vector<float> SafeAgent::features(const SnakeEnv& env) {
 		rf < dt ? 1.0f : 0.0f,
 		static_cast<float>(safe) / 3.0f};
 }
+
+std::vector<float> SafeAgent::actionFeatures(const SnakeEnv& env) {
+	const int W = 20;
+	std::vector<Cell> body = bodyCells(env);
+	const Cell head = body[0];
+	const Food& food = env.state().getFood();
+	if (!haveTree_ || !consistent(tree_, body)) {
+		haveTree_ = treeFor(body, tree_);
+	}
+	std::vector<int> order = cycleOrder(tree_, head, body[1]);
+	std::vector<int> dist(W * W, -1);
+	std::queue<Cell> q;
+	dist[food.getY() * W + food.getX()] = 0;
+	q.push({food.getX(), food.getY()});
+	while (!q.empty()) {
+		Cell c = q.front();
+		q.pop();
+		for (int d = 0; d < 4; ++d) {
+			int nx = c.first + SnakeEnv::DX[d], ny = c.second + SnakeEnv::DY[d];
+			if (env.blocked(nx, ny) || dist[ny * W + nx] >= 0) continue;
+			dist[ny * W + nx] = dist[c.second * W + c.first] + 1;
+			q.push({nx, ny});
+		}
+	}
+	struct Option { bool blocked, safe, cycleStep; int path; };
+	std::vector<Option> options;
+	int bestSafe = 1 << 30;
+	for (int a = 0; a < SnakeEnv::ACTIONS; ++a) {
+		int d = SnakeEnv::turn(env.dir(), a);
+		Cell c{head.first + SnakeEnv::DX[d], head.second + SnakeEnv::DY[d]};
+		if (env.blocked(c.first, c.second)) {
+			options.push_back({true, false, false, -1});
+			continue;
+		}
+		std::vector<Cell> next{c};
+		next.insert(next.end(), body.begin(), body.end() - (c.first == food.getX() && c.second == food.getY() ? 0 : 1));
+		Tree t;
+		Option o{false, treeFor(next, t), order[c.second * W + c.first] == 1, dist[c.second * W + c.first]};
+		if (o.safe && o.path >= 0) bestSafe = std::min(bestSafe, o.path);
+		options.push_back(o);
+	}
+	std::vector<float> f;
+	for (const Option& o : options) {
+		// Steps worse than the best safe move, capped at 4 and scaled to 0..1, so the choice is visible to the network
+		float regret = o.blocked || o.path < 0 ? 1.0f : static_cast<float>(std::min(o.path - bestSafe, 4)) / 4.0f;
+		f.insert(f.end(), {o.blocked ? 1.0f : 0.0f, o.safe ? 1.0f : 0.0f, std::max(regret, 0.0f), o.cycleStep ? 1.0f : 0.0f});
+	}
+	return f;
+}
