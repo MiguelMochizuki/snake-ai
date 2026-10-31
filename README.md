@@ -1,13 +1,13 @@
 # snake-ai
 
-Agents that play [snake-game](https://github.com/MiguelMochizuki/snake-game), trained with the neural network library [nn-cpp](https://github.com/MiguelMochizuki/nn-cpp). The chosen approach is **imitation**: a small network learns to copy an expert player. The best network copies a *safe A\** player, one that only makes moves that keep the body on a Hamiltonian cycle of 2x2 tiles, so it can never trap itself. It scores 397 points (full board) in about 15,800 steps with no deaths in 12 games, and the same weights fill 10x10 and 40x40 boards without retraining.
+Agents that play [snake-game](https://github.com/MiguelMochizuki/snake-game), trained with the neural network library [nn-cpp](https://github.com/MiguelMochizuki/nn-cpp). The chosen approach is imitation: a small network learns to copy an expert player. The best network copies a *safe A\ player, one that only makes moves that keep the body on a Hamiltonian cycle of 2x2 tiles, so it can never trap itself. It scores 397 points (full board) in about 15,800 steps with no deaths in 12 games, and the same weights fill 10x10 and 40x40 boards without retraining.
 
 ## Overview
 
-- **Environment** (`env/`) — a headless environment over snake-game's `GameState`, with relative actions (straight, right, left), a runtime board size and two feature families.
-- **Planning** (`planning/`) — Hamiltonian cycles built from spanning trees of 2x2 tiles, a union-find test of whether the body still lies on some cycle, and three playing modes (A\*, shortcuts, cycle) that all preserve that property.
-- **Teachers** (`teachers/`) — the cycle player with safe shortcuts, and the evolved heuristic used as a baseline.
-- **Policy** (`policy/`) — the network architecture and the policy that imitates the safe A\* player.
+- Environment (`env/`): a headless environment over snake-game's `GameState`, with relative actions (straight, right, left), a runtime board size and two feature families.
+- Planning (`planning/`): Hamiltonian cycles built from spanning trees of 2x2 tiles, a union-find test of whether the body still lies on some cycle, and three playing modes (A\*, shortcuts, cycle) that all preserve that property.
+- Teachers (`teachers/`): the cycle player with safe shortcuts, and the evolved heuristic used as a baseline.
+- Policy (`policy/`): the network architecture and the policy that imitates the safe A\* player.
 
 Results and design decisions are in [docs/REPORT.md](docs/REPORT.md); the raw logs of the final runs are in [docs/results/](docs/results/).
 
@@ -74,7 +74,7 @@ Both dependencies are git submodules in `deps/`: `snake-game` at tag v2.0.0 and 
 |---|---|---|---|
 | Hamiltonian cycle | 397 | 39,574 | 0/12 |
 | Safe A\* (teacher) | 397 | 15,792 | 0/12 |
-| **Network imitating safe A\*** | **397** | **15,792** | **0/12** |
+| Network imitating safe A\* | 397 | 15,792 | 0/12 |
 
 The same network reaches the full board on 10x10 and 40x40 with exactly the teacher's step counts.
 

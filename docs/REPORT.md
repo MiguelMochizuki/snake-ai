@@ -2,23 +2,23 @@
 
 ## Summary
 
-**Update:** the tile scheme (section below) gave a player that is faster than the cycle and just as safe: the guaranteed A\* scores 397 points in about 15,800 steps, against 39,600 for the cycle. A network trained to imitate that safe A\* (section "Imitating the safe A\*") reproduces the teacher: 397 points, 15,792 steps, 0 deaths in 12 games. The chosen imitation is now that one; the cycle network stays as the first version.
+Update: the tile scheme (section below) gave a player that is faster than the cycle and just as safe: the guaranteed A\* scores 397 points in about 15,800 steps, against 39,600 for the cycle. A network trained to imitate that safe A\* (section "Imitating the safe A\*") reproduces the teacher: 397 points, 15,792 steps, 0 deaths in 12 games. The chosen imitation is now that one; the cycle network stays as the first version.
 
-We compared four players on `snake-game` v2.0.0, 20x20 board. **Imitation** was chosen: a 13→32→32→3 network trained to copy the Hamiltonian cycle player reaches 393.8 points on average out of a maximum of 397 (full board). The two approaches that learn without a teacher fell well behind.
+We compared four players on `snake-game` v2.0.0, 20x20 board. Imitation was chosen: a 13→32→32→3 network trained to copy the Hamiltonian cycle player reaches 393.8 points on average out of a maximum of 397 (full board). The two approaches that learn without a teacher fell well behind.
 
 ## How we measured
 
 - 30 fresh games per player, with the same food seeds (100000 to 100029), never used in training.
 - Cap of 60,000 steps per game. A game also ends by starvation: 600 steps without eating count as a death.
 - Maximum score: 397, the 400-cell board with the initial snake of 3. Filling the board counts as a win.
-- Each number comes from **one** training run and **one** set of 30 games. Training is not deterministic: retraining the imitation network to save the model gave a mean of 397.0 (0 deaths) instead of 393.8. We did not repeat with several seeds.
+- Each number comes from one training run and one set of 30 games. Training is not deterministic: retraining the imitation network to save the model gave a mean of 397.0 (0 deaths) instead of 393.8. We did not repeat with several seeds.
 
 ## Results
 
 | Player | Mean | Min | Max | Deaths |
 |---|---|---|---|---|
 | Expert (Hamiltonian cycle with safe shortcuts) | 397.0 | 397 | 397 | 0/30 |
-| **Imitation** (13 features, MLP 13→32→32→3, Adam) | **393.8** (other run: 397.0) | 301 | 397 | 1/30 (other run: 0/30) |
+| Imitation (13 features, MLP 13→32→32→3, Adam) | 393.8 (other run: 397.0) | 301 | 397 | 1/30 (other run: 0/30) |
 | Heuristic evolved by GA, with winding term, 20k steps during evolution | 263.5 | 173 | 369 | 30/30 |
 | Heuristic evolved by GA, without the term, 20k steps during evolution | 251.7 | 122 | 385 | 30/30 |
 | DQN with invariant features and heuristic shaping | 38.5 | 14 | 74 | 30/30 |
@@ -31,12 +31,12 @@ First version, with another expert and another test set (100 games): the BFS exp
 ### 1. Replace the BFS expert with the Hamiltonian cycle
 
 BFS takes the snake to the food by the shortest path, but it ends up trapping itself (mean 64). The Hamiltonian cycle visits every cell in a fixed order. With shortcuts that only move forward and never pass the tail, the body stays in cycle order and the snake never traps itself. It won all 30 games.
-**Consequence:** the teacher became perfect, so the ceiling for imitation rose from 64 to 397.
+Consequence: the teacher became perfect, so the ceiling for imitation rose from 64 to 397.
 
 ### 2. Give the network cycle-relative features
 
 Per action (straight, right, left) the network receives: whether it is blocked, whether the cycle allows the move, and the remaining distance to the food along the cycle (divided by 400). Plus the current heading as one-hot, 13 values in total. The expert's decision (smallest distance among the allowed moves) becomes a simple function of these features, easy to learn: the loss reaches 0.0001.
-**Consequence:** with 11 local features (no cycle), imitation stayed at 27.5.
+Consequence: with 11 local features (no cycle), imitation stayed at 27.5.
 
 ### 3. Choose imitation
 
@@ -46,9 +46,9 @@ Per action (straight, right, left) the network receives: whether it is blocked, 
 
 ### 4. What we did not adopt, and why
 
-- **DQN:** it learns not to die immediately, but not to plan. With gamma 0.95 the horizon is about 20 steps, and the food is often more than 100 steps away along the cycle. Invariant features, heuristic shaping, a death penalty proportional to size and a loop penalty raised it from 7.3 to 38.5, still far off. A larger gamma, more steps and Double DQN were not tested.
-- **Genetic algorithm over the heuristic:** it reached about 260 points, but every game ends in death. The heuristic is invariant to rotation and scale and has weights that depend on snake size, which was the goal, but it does not give the guarantee the cycle gives.
-- **Winding-number term** (board points with winding number 1 with respect to the closed curve formed by the body): it improved the mean by 3% to 5%, in the same direction in both rounds, but with one evolution per configuration and scores ranging from 173 to 369, we cannot claim the effect is real. The computation was checked against a brute-force angle sum, with no divergence in 2,200 states.
+- DQN: it learns not to die immediately, but not to plan. With gamma 0.95 the horizon is about 20 steps, and the food is often more than 100 steps away along the cycle. Invariant features, heuristic shaping, a death penalty proportional to size and a loop penalty raised it from 7.3 to 38.5, still far off. A larger gamma, more steps and Double DQN were not tested.
+- Genetic algorithm over the heuristic: it reached about 260 points, but every game ends in death. The heuristic is invariant to rotation and scale and has weights that depend on snake size, which was the goal, but it does not give the guarantee the cycle gives.
+- Winding-number term (board points with winding number 1 with respect to the closed curve formed by the body): it improved the mean by 3% to 5%, in the same direction in both rounds, but with one evolution per configuration and scores ranging from 173 to 369, we cannot claim the effect is real. The computation was checked against a brute-force angle sum, with no divergence in 2,200 states.
 
 ### 5. Dependencies as git submodules
 
@@ -56,7 +56,7 @@ Per action (straight, right, left) the network receives: whether it is blocked, 
 
 ## Limitations
 
-- The cycle features hold for the 20x20 board and the chosen cycle. The cycle imitation is **not invariant** to rotation or scale, unlike the heuristic. For another size a different cycle must be generated and the network retrained.
+- The cycle features hold for the 20x20 board and the chosen cycle. The cycle imitation is not invariant to rotation or scale, unlike the heuristic. For another size a different cycle must be generated and the network retrained.
 - The network learns the expert's rule, it does not discover a strategy. The best it can do is what the expert already does.
 - The single death of the imitation (301 points) happened in a long game. We did not investigate the cause.
 - One training run and 30 games per player. Small differences (for example, between the heuristics) are not conclusive.
@@ -75,24 +75,24 @@ Question: after imitating the cycle, can the network zigzag and minimize the dis
 
 A full game takes about 37 thousand steps. We tried two ways to shorten it:
 
-1. **Shortest safe route inside the cycle rule.** Dynamic programming over cycle indices, accepting only routes that advance along the cycle and stay before the tail. Safe (0 deaths in 30 games), but **no gain**: 37,434 steps per game against 37,500. Only the start improves (26 to 23 steps per food up to 25 points). With a long snake the free stretch ahead is short, and the food often lands on a cell skipped by an earlier shortcut, which sits behind the tail on the cycle; the snake waits for the tail to move. The limit comes from the cycle's own guarantee. There was also a mistake of ours along the way: without handling food behind the tail, the route crossed the body and the snake died (mean 35.5). We reverted that code, since it brought no gain.
-2. **Shortest route by BFS with a safety test** (`experiments/bfs_safe.cpp`). It follows BFS to the food if a simulation shows the tail stays reachable after eating; otherwise it chases the tail. In 10 games: **392.4 points on average with 23,204 steps** (38% fewer than the cycle), but all 10 end without filling the board: they land between 387 and 395 and starve (600 steps without eating) when few cells remain, because the test always rejects the path to the food. Relaxing the test is much worse: accepting a path longer than 360 gave 362.7 points and collisions; accepting after 150 steps without eating gave 194.4 and collisions.
+1. Shortest safe route inside the cycle rule. Dynamic programming over cycle indices, accepting only routes that advance along the cycle and stay before the tail. Safe (0 deaths in 30 games), but no gain: 37,434 steps per game against 37,500. Only the start improves (26 to 23 steps per food up to 25 points). With a long snake the free stretch ahead is short, and the food often lands on a cell skipped by an earlier shortcut, which sits behind the tail on the cycle; the snake waits for the tail to move. The limit comes from the cycle's own guarantee. There was also a mistake of ours along the way: without handling food behind the tail, the route crossed the body and the snake died (mean 35.5). We reverted that code, since it brought no gain.
+2. Shortest route by BFS with a safety test (`experiments/bfs_safe.cpp`). It follows BFS to the food if a simulation shows the tail stays reachable after eating; otherwise it chases the tail. In 10 games: 392.4 points on average with 23,204 steps (38% fewer than the cycle), but all 10 end without filling the board: they land between 387 and 395 and starve (600 steps without eating) when few cells remain, because the test always rejects the path to the food. Relaxing the test is much worse: accepting a path longer than 360 gave 362.7 points and collisions; accepting after 150 steps without eating gave 194.4 and collisions.
 
-**Conclusion.** There is a clear cost: the cycle guarantees 397 points in 37 thousand steps; BFS with the tail test makes about 392 in 23 thousand, with no guarantee and a stuck ending. We did not train the network to imitate BFS: it would need features encoding the route and the simulation result (as the cycle features encode the current teacher), and the stuck ending would have to be solved first. The chosen approach remained cycle imitation.
+Conclusion. The cycle guarantees 397 points in 37 thousand steps; BFS with the tail test makes about 392 in 23 thousand, with no guarantee and a stuck ending. We did not train the network to imitate BFS: it would need features encoding the route and the simulation result (as the cycle features encode the current teacher), and the stuck ending would have to be solved first. The chosen approach remained cycle imitation.
 
 ## Tile scheme: dynamic Hamiltonian cycles
 
 A\* alone is not safe: it breaks the body's cycle order and the ending gets stuck (see above). A scheme of 2x2 tiles (per-cell arrows) solves this. The board becomes a 10x10 grid of tiles. Any spanning tree of that grid defines a Hamiltonian cycle of the 400 cells: along a tree edge the cycle crosses the tile border in both lanes; inside a tile it uses the pair of cells on each side that has no tree edge.
 
-Each step of the body imposes a condition on the tree: passing between tiles forces that edge to be in the tree; moving inside a tile forces the edge of the corresponding side to stay out. The body lies on **some** cycle exactly when a spanning tree exists that respects all conditions. This is decided with union-find: the mandatory edges cannot close a loop, and the non-forbidden edges must connect the grid (`src/planning/tiles.cpp`). If a move leaves the body on some cycle, the snake can always follow that cycle to its tail, and the modes can be switched at any step.
+Each step of the body imposes a condition on the tree: passing between tiles forces that edge to be in the tree; moving inside a tile forces the edge of the corresponding side to stay out. The body lies on some cycle exactly when a spanning tree exists that respects all conditions. This is decided with union-find: the mandatory edges cannot close a loop, and the non-forbidden edges must connect the grid (`src/planning/tiles.cpp`). If a move leaves the body on some cycle, the snake can always follow that cycle to its tail, and the modes can be switched at any step.
 
 Validation: 50 random trees give a single cycle with degree 2 at every cell, and every prefix of the cycle is accepted as a body (`experiments/safe_modes.cpp`).
 
 Modes (`src/planning/modes.cpp`), all restricted to moves that keep this property:
 
-- **A\*:** the safe move with the shortest real path to the food.
-- **Shortcuts:** the safe move closest to the food along the current cycle.
-- **Cycle:** follows the cycle.
+- A\*: the safe move with the shortest real path to the food.
+- Shortcuts: the safe move closest to the food along the current cycle.
+- Cycle: follows the cycle.
 
 12 games, same seeds, 397 = full board:
 
@@ -114,7 +114,7 @@ With the guarantee, A\* fills the board in 60% fewer steps than the cycle and wi
 
 The learned selector picks A\* in 98% of steps and finishes in 15,792 steps, the same as pure A\*. The loss stays at 0.83, so the labels are noisy: the difference between modes over 250 steps is a few foods. The best fixed switch (A\* until 100, then shortcuts) gains 4% over A\*, with 12 games and no repetition, so we cannot say it is real.
 
-**Conclusion.** Choosing among the three modes yields little; the gain came from the safety guarantee, not from the choice. Safe A\* is the best player on speed and always scores 397.
+Conclusion. Choosing among the three modes yields little; the gain came from the safety guarantee, not from the choice. Safe A\* is the best player on speed and always scores 397.
 
 ## Imitating the safe A\*
 
@@ -130,10 +130,10 @@ The learned selector picks A\* in 98% of steps and finishes in 15,792 steps, the
 
 The network never chose an unsafe move, so the filter changes nothing here. It stays in the code as a guarantee. With 2.5 times fewer steps than the cycle network (39,574), it is the best trained player.
 
-The road to this result had two stumbles, recorded here:
+Two problems came up on the way:
 
-1. **Distance divided by 400.** In the first version the distance feature was the distance over 400, so two moves differed by 0.0025 and the network could not tell them apart. It spun around at the start without eating (4 of 12 games ended in starvation with 0 points; mean 201 to 264, 5 to 6 deaths). Replacing it with "steps more than the best safe move" fixed it, with the loss at 0.014.
-2. **Loop guard.** The teacher follows the cycle after 250 steps without eating; the network gets the same guard in the code that plays (`astarNetAction`). This is not learned by the network.
+1. Distance divided by 400. In the first version the distance feature was the distance over 400, so two moves differed by 0.0025 and the network could not tell them apart. It spun around at the start without eating (4 of 12 games ended in starvation with 0 points; mean 201 to 264, 5 to 6 deaths). Replacing it with "steps more than the best safe move" fixed it, with the loss at 0.014.
+2. Loop guard. The teacher follows the cycle after 250 steps without eating; the network gets the same guard in the code that plays (`astarNetAction`). This is not learned by the network.
 
 Limitations: the features already contain the teacher's answer (the rule is "the shortest among the safe ones"), so the network learns to read that information, not to discover it. The tree safety test (`treeFor`) runs at every step and costs more than the network. One training run and 12 games.
 
@@ -147,13 +147,13 @@ Limitations: the features already contain the teacher's answer (the rule is "the
 |---|---|---|---|---|
 | 10x10 | Safe A\* (teacher) | 97 / 97 | 1,330 (13.3) | 0/12 |
 | 10x10 | Cycle | 97 / 97 | 2,431 (24.3) | 0/12 |
-| 10x10 | **Network (20x20 weights)** | **97 / 97** | **1,330 (13.3)** | **0/12** |
+| 10x10 | Network (20x20 weights) | 97 / 97 | 1,330 (13.3) | 0/12 |
 | 20x20 | Safe A\* | 397 / 397 | 15,792 (39.5) | 0/12 |
 | 20x20 | Cycle | 397 / 397 | 39,574 (98.9) | 0/12 |
 | 20x20 | Network | 397 / 397 | 15,792 (39.5) | 0/12 |
 | 40x40 | Safe A\* | 1597 / 1597 | 199,338 (124.6) | 0/4 |
 | 40x40 | Cycle | 481.5 / 1597 | 320,000 (200.0) | 4/4 (stopped at the step cap) |
-| 40x40 | **Network (20x20 weights)** | **1597 / 1597** | **199,338 (124.6)** | **0/4** |
+| 40x40 | Network (20x20 weights) | 1597 / 1597 | 199,338 (124.6) | 0/4 |
 
 The network trained only on 20x20 fills the board on 10x10 and 40x40 with exactly the teacher's steps, so it copies the whole trajectory. This confirms what the features already suggested: safe move, "steps more than the best safe move" and "next cycle step" do not change with scale.
 
