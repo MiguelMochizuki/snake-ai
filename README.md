@@ -2,6 +2,10 @@
 
 Agents that play [snake-game](https://github.com/MiguelMochizuki/snake-game), trained with the neural network library [nn-cpp](https://github.com/MiguelMochizuki/nn-cpp). The chosen approach is imitation: a small network learns to copy an expert player. The best network copies a safe A* player, one that only makes moves that keep the body on a Hamiltonian cycle of 2x2 tiles, so it can never trap itself. It scores 397 points (full board) in about 15,800 steps with no deaths in 12 games, and the same weights fill 10x10 and 40x40 boards without retraining.
 
+![The network imitating safe A* fills the 20x20 board](docs/astar_network.gif)
+
+The network playing a full 20x20 game (seed 1, one frame every 60 steps, 14,908 steps, 397 points).
+
 ## Overview
 
 - Environment (`env/`): a headless environment over snake-game's `GameState`, with relative actions (straight, right, left), a runtime board size and two feature families.
