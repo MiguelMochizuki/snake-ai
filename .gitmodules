@@ -1,0 +1,6 @@
+[submodule "deps/snake-game"]
+	path = deps/snake-game
+	url = https://github.com/MiguelMochizuki/snake-game.git
+[submodule "deps/nn-cpp"]
+	path = deps/nn-cpp
+	url = https://github.com/MiguelMochizuki/nn-cpp.git

@@ -8,23 +8,11 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
-# Dependencies are fetched at pinned versions. For local development against
-# your own checkouts, pass -DFETCHCONTENT_SOURCE_DIR_SNAKE_GAME=../snake-game
-# and -DFETCHCONTENT_SOURCE_DIR_NN_CPP=../nn-cpp
-include(FetchContent)
-FetchContent_Declare(snake_game
-	GIT_REPOSITORY https://github.com/MiguelMochizuki/snake-game.git
-	GIT_TAG v2.0.0
-	SOURCE_SUBDIR no-cmake  # only its sources are used, not its build
-)
-FetchContent_Declare(nn_cpp
-	GIT_REPOSITORY https://github.com/MiguelMochizuki/nn-cpp.git
-	GIT_TAG bc06012c7bdaabfcdcfc5e43cd2b034f98ffb616
-)
+# Dependencies are git submodules under deps/ (git submodule update --init)
+set(SNAKE_DIR ${CMAKE_SOURCE_DIR}/deps/snake-game)
 set(NN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(NN_BUILD_APPS OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(snake_game nn_cpp)
-set(SNAKE_DIR ${snake_game_SOURCE_DIR})
+add_subdirectory(deps/nn-cpp)
 
 # Only the headless game logic; no terminal code
 add_library(snake_logic STATIC
