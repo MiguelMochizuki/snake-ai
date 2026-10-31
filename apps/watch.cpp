@@ -19,6 +19,12 @@ namespace {
 const int MAX_STEPS = 100000;
 volatile std::sig_atomic_t interrupted = 0;
 
+/**
+ * Signal handler that asks the game loop to stop so the terminal can be restored
+ *
+ * Parameters:
+ * int: Signal number, unused
+ */
 void onSignal(int) {
 	interrupted = 1;
 }
@@ -55,6 +61,15 @@ void draw(const SnakeEnv& env, int step) {
 
 }  // namespace
 
+/**
+ * Plays one game in the terminal with a network loaded from a checkpoint
+ *
+ * Parameters:
+ * int argc: Argument count
+ * char** argv: argv[1] is the checkpoint, then optional seed, milliseconds per frame, draw stride and "astar"
+ *
+ * Returns int: 0 on success, 1 on bad usage or if the checkpoint cannot be loaded
+ */
 int main(int argc, char** argv) {
 	if (argc < 2) {
 		std::fprintf(stderr, "usage: %s CHECKPOINT [seed=1] [ms per frame=50] [draw every N steps=1] [astar]\n", argv[0]);

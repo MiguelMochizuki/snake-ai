@@ -122,6 +122,12 @@ void evaluate(const char* name, const std::function<Mode(const SnakeEnv&, SafeAg
 
 }  // namespace
 
+/**
+ * Labels states by rollouts, trains the mode-selector network, saves the checkpoint and
+ * compares it with fixed mode schedules
+ *
+ * Returns int: 0
+ */
 int main() {
 	// 1. Label states by rollouts, games in parallel
 	std::vector<std::vector<Sample>> parts(DATA_GAMES);

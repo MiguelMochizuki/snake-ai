@@ -45,6 +45,16 @@ double fitness(const Genome& g, unsigned seedBase) {
 
 }  // namespace
 
+/**
+ * Evolves the heuristic's genome with a genetic algorithm and saves the best one
+ *
+ * Parameters:
+ * int argc: Argument count
+ * char** argv: argv[1] is the output genome file (default genome.txt), argv[2] the step limit per game,
+ * argv[3] set to "nocoil" disables the coil term
+ *
+ * Returns int: 0
+ */
 int main(int argc, char** argv) {
 	const char* out = argc > 1 ? argv[1] : "genome.txt";
 	if (argc > 2) maxSteps = std::atoi(argv[2]);

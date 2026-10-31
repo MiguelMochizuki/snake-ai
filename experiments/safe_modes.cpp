@@ -101,6 +101,15 @@ Result play(const std::function<Mode(const SnakeEnv&)>& pick, int games) {
 
 }  // namespace
 
+/**
+ * Checks the cycle construction on 10, 20 and 40 boards, then plays each mode and some fixed schedules
+ *
+ * Parameters:
+ * int argc: Argument count
+ * char** argv: argv[1] is the number of games per row (default 12)
+ *
+ * Returns int: 0
+ */
 int main(int argc, char** argv) {
 	int games = argc > 1 ? std::atoi(argv[1]) : 12;
 	for (int n : {10, 20, 40}) std::printf("construction %dx%d: %s\n", n, n, checkConstruction(n) ? "ok" : "FAILED");

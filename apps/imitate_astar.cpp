@@ -76,6 +76,12 @@ void evaluate(const char* name, Sequential& net, bool onlySafe) {
 
 }  // namespace
 
+/**
+ * Records the safe A* player, trains a network to imitate it, saves the checkpoint and
+ * evaluates the reloaded network raw and with the safety filter
+ *
+ * Returns int: 0
+ */
 int main() {
 	std::vector<std::vector<float>> xp(TEACHER_GAMES), yp(TEACHER_GAMES);
 	std::vector<std::thread> pool;

@@ -9,7 +9,18 @@
 #include <queue>
 #include <cstdlib>
 static const int W = 20, H = 20;
-// BFS over non-blocked cells; returns distance to target (-1 if none) and optionally the first heading and the path
+/**
+ * Breadth-first search over free cells
+ *
+ * Parameters:
+ * const SnakeEnv& e: Current game
+ * int sx, int sy: Start cell
+ * int gx, int gy: Target cell
+ * std::vector<int>* path: If not null, receives the heading of each step
+ *
+ * Returns int: Distance to the target, -1 if unreachable
+ */
+// BFS over non-blocked cells;
 static int bfs(const SnakeEnv& e, int sx, int sy, int gx, int gy, std::vector<int>* path) {
 	std::vector<int> par(W * H, -2), pd(W * H, -1);
 	std::queue<int> q; q.push(sy * W + sx); par[sy * W + sx] = -1;
@@ -29,11 +40,36 @@ static int bfs(const SnakeEnv& e, int sx, int sy, int gx, int gy, std::vector<in
 	}
 	return -1;
 }
+/**
+ * Finds the relative action that turns the current heading into the wanted one
+ *
+ * Parameters:
+ * int dir: Current heading
+ * int want: Wanted heading
+ *
+ * Returns int: Action (straight, right or left), -1 if it would reverse
+ */
 static int actionFor(int dir, int want) { for (int a = 0; a < 3; ++a) if (SnakeEnv::turn(dir, a) == want) return a; return -1; }
+/**
+ * Distance from the head to the tail, a check that the snake can still escape
+ *
+ * Parameters:
+ * const SnakeEnv& e: Current game
+ *
+ * Returns int: BFS distance, -1 if the tail is unreachable
+ */
 static int tailDist(const SnakeEnv& e) {
 	auto h = e.state().getSnake().getHead(); auto& t = e.state().getSnake().getSegments().back();
 	return bfs(e, h->getX(), h->getY(), t.getX(), t.getY(), nullptr);
 }
+/**
+ * Takes the shortest path to the food if a simulation shows the tail stays reachable, otherwise chases the tail
+ *
+ * Parameters:
+ * const SnakeEnv& e: Current game
+ *
+ * Returns int: Action to take
+ */
 int safeAction(const SnakeEnv& e) {
 	auto h = e.state().getSnake().getHead(); auto& f = e.state().getFood();
 	std::vector<int> path;
@@ -51,6 +87,15 @@ int safeAction(const SnakeEnv& e) {
 	}
 	return best >= 0 ? best : 0;
 }
+/**
+ * Plays the BFS-safe agent and prints each game's score, steps and cause of death
+ *
+ * Parameters:
+ * int argc: Argument count
+ * char** argv: argv[1] is the number of games (default 10)
+ *
+ * Returns int: 0
+ */
 int main(int argc, char** argv) {
 	int games = argc > 1 ? atoi(argv[1]) : 10; double sc = 0, st = 0; int deaths = 0;
 	for (int g = 0; g < games; ++g) {

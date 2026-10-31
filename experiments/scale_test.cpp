@@ -53,6 +53,15 @@ Result play(int n, int games, Act act, bool parallel) {
 	return r;
 }
 
+/**
+ * Prints one result row
+ *
+ * Parameters:
+ * int n: Board side
+ * int games: Games played
+ * const char* name: Agent name
+ * const Result& r: Averages over the games
+ */
 void show(int n, int games, const char* name, const Result& r) {
 	std::printf("%2dx%-2d %-24s score %7.1f / %-5d steps %8.0f (%.1f per cell)  not full %d/%d\n", n, n, name, r.score,
 		n * n - 3, r.steps, r.steps / (n * n), r.notFull, games);
@@ -61,6 +70,15 @@ void show(int n, int games, const char* name, const Result& r) {
 
 }  // namespace
 
+/**
+ * Plays the A* teacher and the imitation network on 10, 20 and 40 boards without retraining
+ *
+ * Parameters:
+ * int argc: Argument count
+ * char** argv: argv[1] is the checkpoint (default models/imitation_astar.ckpt)
+ *
+ * Returns int: 0
+ */
 int main(int argc, char** argv) {
 	nn::Sequential net = makeAstarNet();
 	nn::load_checkpoint(argc > 1 ? argv[1] : "models/imitation_astar.ckpt", net);

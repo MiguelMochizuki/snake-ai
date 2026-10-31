@@ -256,6 +256,16 @@ void dqn(bool ego, const char* genomePath) {
 
 }  // namespace
 
+/**
+ * Evaluates the chosen agents on fresh games and prints their scores
+ *
+ * Parameters:
+ * int argc: Argument count
+ * char** argv: argv[1] picks the agent (all, expert, imitation, dqn, dqn-ego or ga; default all),
+ * argv[2] is the genome file for dqn, dqn-ego and ga (default genome.txt)
+ *
+ * Returns int: 0
+ */
 int main(int argc, char** argv) {
 	const char* what = argc > 1 ? argv[1] : "all";
 	bool all = !std::strcmp(what, "all");

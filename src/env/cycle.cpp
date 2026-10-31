@@ -8,6 +8,11 @@
 
 namespace {
 
+/**
+ * Builds the Hamiltonian cycle of the 20x20 board as a table of cell positions
+ *
+ * Returns std::array<int, CYCLE_LEN>: Position along the cycle for each cell, indexed by y * 20 + x
+ */
 std::array<int, CYCLE_LEN> buildTable() {
 	std::array<int, CYCLE_LEN> t{};
 	int n = 0;
