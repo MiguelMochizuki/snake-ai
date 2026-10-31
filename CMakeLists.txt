@@ -24,7 +24,7 @@ add_library(snake_logic STATIC
 )
 target_include_directories(snake_logic PUBLIC ${SNAKE_DIR}/include)
 
-add_library(snake_ai_core STATIC src/cycle.cpp src/snake_env.cpp src/expert.cpp)
+add_library(snake_ai_core STATIC src/cycle.cpp src/snake_env.cpp src/expert.cpp src/heuristic.cpp)
 target_include_directories(snake_ai_core PUBLIC include)
 target_link_libraries(snake_ai_core PUBLIC snake_logic)
 target_compile_options(snake_ai_core PRIVATE -Wall -Wextra -Wpedantic)
@@ -32,3 +32,8 @@ target_compile_options(snake_ai_core PRIVATE -Wall -Wextra -Wpedantic)
 add_executable(compare apps/compare.cpp)
 target_link_libraries(compare PRIVATE snake_ai_core nn_core)
 target_compile_options(compare PRIVATE -Wall -Wextra -Wpedantic)
+
+find_package(Threads REQUIRED)
+add_executable(evolve apps/evolve.cpp)
+target_link_libraries(evolve PRIVATE snake_ai_core Threads::Threads)
+target_compile_options(evolve PRIVATE -Wall -Wextra -Wpedantic)

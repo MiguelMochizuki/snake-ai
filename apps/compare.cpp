@@ -4,6 +4,7 @@
  * Description: Compares the Hamiltonian expert, a network trained to imitate it and a DQN agent on fresh games
  */
 #include "expert.hpp"
+#include "heuristic.hpp"
 #include "snake_env.hpp"
 #include "nn/autograd/value.hpp"
 #include "nn/nn/activation.hpp"
@@ -48,12 +49,13 @@ const float DQN_LR = 1e-3f;
  *
  * Parameters:
  * size_t hidden: Width of both hidden layers
+ * size_t inputs: Number of features
  *
  * Returns Sequential: FEATURES -> hidden -> hidden -> ACTIONS
  */
-Sequential makeNet(size_t hidden) {
+Sequential makeNet(size_t hidden, size_t inputs = F) {
 	Sequential net;
-	net.add(std::make_unique<Linear>(F, hidden));
+	net.add(std::make_unique<Linear>(inputs, hidden));
 	net.add(std::make_unique<ReLU>());
 	net.add(std::make_unique<Linear>(hidden, hidden));
 	net.add(std::make_unique<ReLU>());
@@ -72,7 +74,7 @@ Sequential makeNet(size_t hidden) {
  */
 int greedy(Sequential& net, const std::vector<float>& features) {
 	NoGradGuard noGrad;
-	Value out = net.forward(Value::leaf(Tensor({1, F}, features), false));
+	Value out = net.forward(Value::leaf(Tensor({1, features.size()}, features), false));
 	const std::vector<float>& q = out.data().data();
 	return static_cast<int>(std::max_element(q.begin(), q.end()) - q.begin());
 }
@@ -164,11 +166,39 @@ struct Transition {
 };
 
 /**
- * Trains a DQN from reward alone (+1 food, -1 death, -0.01 per step), then evaluates it
+ * Heuristic value of a state, used as the potential for reward shaping
+ *
+ * Parameters:
+ * const Genome& g: Evolved weights
+ * const std::vector<float>& f: SnakeEnv::egoFeatures()
+ *
+ * Returns float: Best move score, clipped to [-3, 3]
  */
-void dqn() {
-	Sequential net = makeNet(64);
-	Sequential target = makeNet(64);
+float potential(const Genome& g, const std::vector<float>& f) {
+	float best = -3.0f;
+	for (int a = 0; a < 3; ++a) {
+		std::array<float, SnakeEnv::EGO_PER_ACTION> e;
+		std::copy(f.begin() + a * SnakeEnv::EGO_PER_ACTION, f.begin() + (a + 1) * SnakeEnv::EGO_PER_ACTION, e.begin());
+		best = std::max(best, std::min(3.0f, heuristicScore(g, e, f.back())));
+	}
+	return best;
+}
+
+/**
+ * Trains a DQN, then evaluates it. Plain: +1 food, -1 death, -0.01 per step on the cycle features.
+ * Ego: rotation- and scale-invariant features; death costs more the longer the snake (-1 - 4 * length fraction);
+ * revisiting recent cells costs 0.05 per visit; and the evolved heuristic shapes the reward as a potential
+ *
+ * Parameters:
+ * bool ego: Use the invariant features and the shaped reward
+ * const char* genomePath: Genome file for the shaping (ego only)
+ */
+void dqn(bool ego, const char* genomePath) {
+	const size_t in = ego ? SnakeEnv::EGO_FEATURES : F;
+	const Genome genome = ego ? loadGenome(genomePath) : Genome();
+	auto features = [&](const SnakeEnv& e) { return ego ? e.egoFeatures() : e.features(); };
+	Sequential net = makeNet(64, in);
+	Sequential target = makeNet(64, in);
 	auto sync = [&] {
 		std::vector<Value> from = net.parameters(), to = target.parameters();
 		for (size_t i = 0; i < from.size(); ++i) {
@@ -187,11 +217,17 @@ void dqn() {
 	double recent = 0;
 	for (int t = 0; t < DQN_STEPS; ++t) {
 		float eps = std::max(0.05f, 1.0f - t / (0.6f * DQN_STEPS));
-		std::vector<float> s = env.features();
+		std::vector<float> s = features(env);
 		int a = unit(rng) < eps ? static_cast<int>(rng() % A) : greedy(net, s);
+		float lengthBefore = env.lengthFraction();
 		bool ate = env.step(a);
-		float r = env.dead() ? -1.0f : ate ? 1.0f : -0.01f;
-		Transition tr{s, env.features(), a, r, env.dead()};
+		float r = env.dead() ? -1.0f - (ego ? 4.0f * lengthBefore : 0.0f) : ate ? 1.0f : -0.01f;
+		std::vector<float> s2 = features(env);
+		if (ego) {
+			if (!env.dead()) r -= 0.05f * std::max(0, env.headVisits() - 1);
+			r += 0.3f * ((env.dead() ? 0.0f : DQN_GAMMA * potential(genome, s2)) - potential(genome, s));
+		}
+		Transition tr{s, s2, a, r, env.dead()};
 		if (buffer.size() < DQN_BUFFER) {
 			buffer.push_back(std::move(tr));
 		} else {
@@ -218,7 +254,7 @@ void dqn() {
 			}
 			{
 				NoGradGuard noGrad;
-				Value q2 = target.forward(Value::leaf(Tensor({DQN_BATCH, F}, bs2), false));
+				Value q2 = target.forward(Value::leaf(Tensor({DQN_BATCH, in}, bs2), false));
 				const std::vector<float>& q = q2.data().data();
 				for (size_t b = 0; b < DQN_BATCH; ++b) {
 					float best = *std::max_element(q.begin() + b * A, q.begin() + (b + 1) * A);
@@ -227,7 +263,7 @@ void dqn() {
 				}
 			}
 			// Only the taken action carries error: mask zeroes the other outputs and targets
-			Value pred = net.forward(Value::leaf(Tensor({DQN_BATCH, F}, bs), false));
+			Value pred = net.forward(Value::leaf(Tensor({DQN_BATCH, in}, bs), false));
 			Value loss = mse_loss(pred * Value::leaf(Tensor({DQN_BATCH, A}, mask), false),
 				Value::leaf(Tensor({DQN_BATCH, A}, tgt), false));
 			optimizer.zero_grad();
@@ -243,7 +279,7 @@ void dqn() {
 		}
 	}
 	(void)episodeScore;
-	evaluate("dqn", [&](const SnakeEnv& e) { return greedy(net, e.features()); });
+	evaluate(ego ? "dqn-ego" : "dqn", [&](const SnakeEnv& e) { return greedy(net, features(e)); });
 }
 
 }  // namespace
@@ -253,6 +289,12 @@ int main(int argc, char** argv) {
 	bool all = !std::strcmp(what, "all");
 	if (all || !std::strcmp(what, "expert")) evaluate("expert", expertAction);
 	if (all || !std::strcmp(what, "imitation")) imitation();
-	if (all || !std::strcmp(what, "dqn")) dqn();
+	const char* genomePath = argc > 2 ? argv[2] : "genome.txt";
+	if (all || !std::strcmp(what, "dqn")) dqn(false, genomePath);
+	if (!std::strcmp(what, "ga")) {
+		Genome g = loadGenome(genomePath);
+		evaluate("ga", [&](const SnakeEnv& env) { return heuristicAction(g, env); });
+	}
+	if (!std::strcmp(what, "dqn-ego")) dqn(true, genomePath);
 	return 0;
 }

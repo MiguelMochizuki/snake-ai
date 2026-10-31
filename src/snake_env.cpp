@@ -5,6 +5,9 @@
  */
 #include "snake_env.hpp"
 #include "cycle.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <queue>
 #include <stdexcept>
 #include <string>
 
@@ -29,13 +32,11 @@ bool SnakeEnv::blocked(int x, int y) const {
 	if (x < 0 || x >= state_.getCols() || y < 0 || y >= state_.getRows()) {
 		return true;
 	}
-	const auto& seg = state_.getSnake().getSegments();
-	for (size_t i = 0; i + 1 < seg.size(); ++i) {
-		if (seg[i].getX() == x && seg[i].getY() == y) {
-			return true;
-		}
-	}
-	return false;
+	const SnakeSegment& tail = state_.getSnake().getSegments().back();
+	const Food& food = state_.getFood();
+	// The occupancy map also marks the food, which is not an obstacle
+	return state_.isOccupied(x, y) && !(x == tail.getX() && y == tail.getY())
+		&& !(x == food.getX() && y == food.getY());
 }
 
 MoveInfo SnakeEnv::info(int action) const {
@@ -70,6 +71,59 @@ std::vector<float> SnakeEnv::features() const {
 	return f;
 }
 
+std::array<float, SnakeEnv::EGO_PER_ACTION> SnakeEnv::ego(int action) const {
+	const SnakeSegment* head = state_.getSnake().getHead();
+	const SnakeSegment& tail = state_.getSnake().getSegments().back();
+	const Food& food = state_.getFood();
+	const int W = state_.getCols(), H = state_.getRows();
+	int d = turn(dir_, action);
+	int nx = head->getX() + DX[d], ny = head->getY() + DY[d];
+	if (blocked(nx, ny)) {
+		return {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+	}
+	int closer = std::abs(head->getX() - food.getX()) + std::abs(head->getY() - food.getY())
+		- std::abs(nx - food.getX()) - std::abs(ny - food.getY());
+
+	// Flood fill from the target: how much room, and whether the tail is in it
+	std::vector<char> seen(W * H, 0);
+	std::queue<int> q;
+	q.push(ny * W + nx);
+	seen[ny * W + nx] = 1;
+	int room = 0;
+	bool tailReach = false;
+	while (!q.empty()) {
+		int c = q.front();
+		q.pop();
+		++room;
+		int cx = c % W, cy = c / W;
+		tailReach = tailReach || (cx == tail.getX() && cy == tail.getY());
+		for (int k = 0; k < 4; ++k) {
+			int ax = cx + DX[k], ay = cy + DY[k];
+			if (!blocked(ax, ay) && !seen[ay * W + ax]) {
+				seen[ay * W + ax] = 1;
+				q.push(ay * W + ax);
+			}
+		}
+	}
+	int freeCells = W * H - static_cast<int>(state_.getSnake().getLength());
+	int open = 0;
+	for (int k = 0; k < 4; ++k) {
+		open += !blocked(nx + DX[k], ny + DY[k]);
+	}
+	return {0.0f, closer > 0 ? 1.0f : -1.0f, static_cast<float>(room) / std::max(freeCells, 1),
+		tailReach ? 1.0f : 0.0f, std::min(visits_[ny * W + nx], 4) / 4.0f, open / 3.0f};
+}
+
+std::vector<float> SnakeEnv::egoFeatures() const {
+	std::vector<float> f;
+	for (int a : {STRAIGHT, TURN_RIGHT, TURN_LEFT}) {
+		std::array<float, EGO_PER_ACTION> e = ego(a);
+		f.insert(f.end(), e.begin(), e.end());
+	}
+	f.push_back(lengthFraction());
+	return f;
+}
+
 bool SnakeEnv::step(int action) {
 	dir_ = turn(dir_, action);
 	int before = state_.getScore();
@@ -80,6 +134,14 @@ bool SnakeEnv::step(int action) {
 		// Eating the last free cell fills the board: that is a win, not a crash
 		won_ = std::string(e.what()).find("full") != std::string::npos;
 		return won_;
+	}
+	const SnakeSegment* head = state_.getSnake().getHead();
+	int cell = head->getY() * state_.getCols() + head->getX();
+	++visits_[cell];
+	recent_.push_back(cell);
+	if (static_cast<int>(recent_.size()) > LOOP_WINDOW) {
+		--visits_[recent_.front()];
+		recent_.pop_front();
 	}
 	bool ate = state_.getScore() > before;
 	sinceFood_ = ate ? 0 : sinceFood_ + 1;

@@ -6,7 +6,10 @@
 #ifndef SNAKE_ENV_HPP
 #define SNAKE_ENV_HPP
 
+#include "cycle.hpp"
 #include "game_state.hpp"
+#include <array>
+#include <deque>
 #include <vector>
 
 /**
@@ -46,8 +49,13 @@ class SnakeEnv {
 	bool dead_ = false;
 	bool won_ = false;
 	int sinceFood_ = 0;
+	std::deque<int> recent_;
+	std::array<int, 400> visits_{};
 
 public:
+	static const int EGO_PER_ACTION = 6;
+	static const int EGO_FEATURES = 3 * EGO_PER_ACTION + 1;
+	static const int LOOP_WINDOW = 60;  // steps of head history used to spot loops
 	static const int FEATURES = 13;
 	static const int ACTIONS = 3;
 	static const int DX[4];
@@ -63,6 +71,22 @@ public:
 	 * Returns FEATURES floats: per action (straight, right, left) blocked, allowed and remaining cycle distance to the food over CYCLE_LEN; then the heading one-hot (up, down, left, right)
 	 */
 	std::vector<float> features() const;
+
+	/**
+	 * Features that do not change under rotation or board scale: everything is relative to the head's heading or a fraction of the board.
+	 * Per action: blocked, closer to the food (+1/-1), reachable free cells over free cells, tail reachable, recent visits of the target cell over 4, free neighbours of the target over 3. Then the snake length over the board
+	 *
+	 * Parameters:
+	 * int action: STRAIGHT, TURN_RIGHT or TURN_LEFT
+	 *
+	 * Returns std::array<float, EGO_PER_ACTION>: The action's features
+	 */
+	std::array<float, EGO_PER_ACTION> ego(int action) const;
+
+	/**
+	 * Returns EGO_FEATURES floats: ego() of the three actions, then the length fraction
+	 */
+	std::vector<float> egoFeatures() const;
 
 	/**
 	 * Tells whether a cell would kill the snake (wall or body, tail excluded as the game does)
@@ -109,6 +133,8 @@ public:
 	bool dead() const { return dead_; }
 	int score() const { return state_.getScore() + (won_ ? 1 : 0); }
 	int dir() const { return dir_; }
+	int headVisits() const { return visits_[state_.getSnake().getHead()->getY() * state_.getCols() + state_.getSnake().getHead()->getX()]; }
+	float lengthFraction() const { return static_cast<float>(state_.getSnake().getLength()) / CYCLE_LEN; }
 	const GameState& state() const { return state_; }
 };
 
