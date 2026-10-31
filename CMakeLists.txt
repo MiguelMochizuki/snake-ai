@@ -24,7 +24,7 @@ add_library(snake_logic STATIC
 )
 target_include_directories(snake_logic PUBLIC ${SNAKE_DIR}/include)
 
-add_library(snake_ai_core STATIC src/cycle.cpp src/snake_env.cpp src/expert.cpp src/heuristic.cpp)
+add_library(snake_ai_core STATIC src/cycle.cpp src/snake_env.cpp src/expert.cpp src/heuristic.cpp src/tiles.cpp src/modes.cpp)
 target_include_directories(snake_ai_core PUBLIC include)
 target_link_libraries(snake_ai_core PUBLIC snake_logic)
 target_compile_options(snake_ai_core PRIVATE -Wall -Wextra -Wpedantic)
@@ -44,3 +44,11 @@ target_compile_options(watch PRIVATE -Wall -Wextra -Wpedantic)
 
 add_executable(bfs_safe experiments/bfs_safe.cpp)
 target_link_libraries(bfs_safe PRIVATE snake_ai_core)
+
+add_executable(safe_modes experiments/safe_modes.cpp)
+target_link_libraries(safe_modes PRIVATE snake_ai_core Threads::Threads)
+target_compile_options(safe_modes PRIVATE -Wall -Wextra -Wpedantic)
+
+add_executable(selector apps/selector.cpp)
+target_link_libraries(selector PRIVATE snake_ai_core nn_core Threads::Threads)
+target_compile_options(selector PRIVATE -Wall -Wextra -Wpedantic)

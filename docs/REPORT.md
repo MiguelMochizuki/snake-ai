@@ -2,6 +2,8 @@
 
 ## Resumo
 
+**Atualização:** o esquema de ladrilhos (seção abaixo) deu um jogador mais rápido que o ciclo e igualmente seguro: o A* com garantia faz 397 pontos em cerca de 15 800 passos, contra 39 600 do ciclo. A rede treinada ainda imita o ciclo; imitar o A* seguro é o próximo passo.
+
 Comparamos quatro jogadores no `snake-game` v2.0.0, tabuleiro 20x20. A **imitação** foi escolhida: uma rede 13→32→32→3 treinada para copiar o jogador do ciclo hamiltoniano chega a 393,8 pontos em média, de um máximo de 397 (tabuleiro cheio). Os dois caminhos que aprendem sem professor ficaram bem atrás.
 
 ## Como medimos
@@ -79,6 +81,42 @@ Uma partida completa leva cerca de 37 mil passos. Testamos duas formas de encurt
 
 **Conclusão.** Há um custo claro: o ciclo garante 397 pontos em 37 mil passos; o BFS com teste de cauda faz cerca de 392 em 23 mil, sem garantia e com um final travado. Não treinamos a rede para imitar o BFS: ela precisaria de features que codifiquem a rota e o resultado da simulação (como as features do ciclo codificam o professor atual), e o final travado teria que ser resolvido antes. A abordagem escolhida continua sendo a imitação do ciclo.
 
+## Esquema de ladrilhos: ciclos hamiltonianos dinâmicos
+
+O A* sozinho não é seguro: ele quebra a ordem de ciclo do corpo e o final fica travado (ver acima). Um esquema de ladrilhos 2x2 (setas por célula, como nas figuras que você trouxe) resolve isso. O tabuleiro vira uma grade de 10x10 ladrilhos. Qualquer árvore geradora dessa grade define um ciclo hamiltoniano das 400 células: ao longo de uma aresta da árvore o ciclo atravessa a borda do ladrilho nas duas faixas; dentro de um ladrilho ele usa o par de células de cada lado que não tem aresta da árvore.
+
+Cada passo do corpo impõe uma condição à árvore: passar entre ladrilhos obriga a aresta a estar na árvore; andar dentro de um ladrilho obriga a aresta do lado correspondente a ficar fora. O corpo está sobre **algum** ciclo exatamente quando existe uma árvore geradora que respeita todas as condições. Isso se decide com union-find: as arestas obrigatórias não podem fechar laço, e as arestas não proibidas precisam conectar a grade (`src/tiles.cpp`). Se um movimento deixa o corpo sobre algum ciclo, a cobra sempre pode seguir esse ciclo até a cauda, e os modos podem ser trocados a qualquer passo.
+
+Validação: 50 árvores aleatórias dão ciclo único com grau 2 em todas as células, e todo prefixo do ciclo é aceito como corpo (`experiments/safe_modes.cpp`).
+
+Modos (`src/modes.cpp`), todos restritos aos movimentos que mantêm essa propriedade:
+
+- **A\*:** o movimento seguro com menor caminho real até a comida.
+- **Atalhos:** o movimento seguro mais próximo da comida ao longo do ciclo atual.
+- **Ciclo:** segue o ciclo.
+
+12 partidas, mesmas sementes, 397 = tabuleiro cheio:
+
+| Estratégia | Pontos | Passos por partida | Mortes |
+|---|---|---|---|
+| Ciclo puro | 397 | 39 574 | 0/12 |
+| Atalhos | 397 | 15 943 | 0/12 |
+| A\* | 397 | 15 792 | 0/12 |
+| A\* até 100, depois atalhos | 397 | 15 110 | 0/12 |
+| Atalhos até 100, depois A\* | 397 | 17 022 | 0/12 |
+| A\* até 100, depois ciclo | 397 | 26 023 | 0/12 |
+| A\* até 300, depois ciclo | 397 | 16 504 | 0/12 |
+
+Com a garantia, o A\* enche o tabuleiro em 60% menos passos que o ciclo e sem nenhuma morte, o que o BFS com teste de cauda não conseguia (392 pontos e final travado). A tentativa anterior de atalhos "clássicos" (pular células do ciclo fixo) quebra a propriedade, porque o corpo deixa de ser um trecho contínuo do ciclo; dentro do esquema, atalhos viram um critério de escolha entre os movimentos seguros.
+
+### Seletor de modo aprendido
+
+`apps/selector.cpp`: 9748 estados amostrados em 48 partidas com troca aleatória de modo. Em cada estado, cada modo é mantido por 100 passos e seguido por 150 passos de A\*; o rótulo é o modo que comeu mais, só trocando do A\* se ganhar por pelo menos uma comida (A\* 6251, atalhos 2597, ciclo 900). Rede 8→32→32→3 sobre 8 features sem escala (tamanho, distâncias até a comida e à cauda, passos sem comer, comida antes da cauda, movimentos seguros).
+
+O seletor aprendido escolhe A\* em 98% dos passos e termina em 15 792 passos, igual ao A\* puro. A loss fica em 0,83, ou seja, os rótulos são ruidosos: a diferença entre modos em 250 passos é de poucas comidas. A melhor troca fixa (A\* até 100, depois atalhos) ganha 4% sobre o A\*, com 12 partidas e sem repetir, então não dá para afirmar que é real.
+
+**Conclusão.** Escolher entre os três modos rende pouco; o ganho veio da garantia de segurança, não da escolha. O A\* seguro é o melhor jogador em velocidade e dá 397 sempre.
+
 ## Rede salva e modo de assistir
 
 `compare imitation` grava o checkpoint (`imitation.ckpt`) e avalia a cópia recarregada, para provar que o arquivo guarda a rede treinada. A rede de `models/imitation.ckpt` enche o tabuleiro (397) nas sementes 1 e 3, em cerca de 36 mil passos. Para assistir:
@@ -91,6 +129,6 @@ Partidas completas passam de 35 mil passos; use, por exemplo, `watch models/imit
 
 ## Próximos passos
 
-1. Se a velocidade importar mais que a garantia de 397: resolver o final travado do `bfs_safe` (por exemplo, trocar para outra estratégia quando restam poucas células) e treinar a rede com features da rota e da simulação.
+1. Treinar a rede para imitar o A* seguro. As features por ação seriam: se o movimento mantém o corpo sobre algum ciclo (teste de árvore), distância até a comida depois do movimento e bloqueio. O professor passa a ser 2,5 vezes mais rápido.
 2. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
 3. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8 a 397.
