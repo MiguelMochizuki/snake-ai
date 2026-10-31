@@ -53,7 +53,7 @@ class SnakeEnv {
 	std::array<int, 400> visits_{};
 
 public:
-	static const int EGO_PER_ACTION = 6;
+	static const int EGO_PER_ACTION = 7;
 	static const int EGO_FEATURES = 3 * EGO_PER_ACTION + 1;
 	static const int LOOP_WINDOW = 60;  // steps of head history used to spot loops
 	static const int FEATURES = 13;
@@ -74,7 +74,7 @@ public:
 
 	/**
 	 * Features that do not change under rotation or board scale: everything is relative to the head's heading or a fraction of the board.
-	 * Per action: blocked, closer to the food (+1/-1), reachable free cells over free cells, tail reachable, recent visits of the target cell over 4, free neighbours of the target over 3. Then the snake length over the board
+	 * Per action: blocked, closer to the food (+1/-1), reachable free cells over free cells, tail reachable, recent visits of the target cell over 4, free neighbours of the target over 3, coil (see coil()). Then the snake length over the board
 	 *
 	 * Parameters:
 	 * int action: STRAIGHT, TURN_RIGHT or TURN_LEFT
@@ -82,6 +82,18 @@ public:
 	 * Returns std::array<float, EGO_PER_ACTION>: The action's features
 	 */
 	std::array<float, EGO_PER_ACTION> ego(int action) const;
+
+	/**
+	 * Estimates how much of the board the snake encircles: closes the body into a curve (target cell, head ... tail, back to the target)
+	 * and counts the points (cell corners) around which the curve winds exactly once
+	 *
+	 * Parameters:
+	 * int nx: Column of the cell the head would move to
+	 * int ny: Row of that cell
+	 *
+	 * Returns float: Points with winding number of absolute value 1, over all points (0..1)
+	 */
+	float coil(int nx, int ny) const;
 
 	/**
 	 * Returns EGO_FEATURES floats: ego() of the three actions, then the length fraction

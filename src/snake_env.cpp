@@ -6,6 +6,7 @@
 #include "snake_env.hpp"
 #include "cycle.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <queue>
 #include <stdexcept>
@@ -71,6 +72,48 @@ std::vector<float> SnakeEnv::features() const {
 	return f;
 }
 
+float SnakeEnv::coil(int nx, int ny) const {
+	const int W = state_.getCols(), H = state_.getRows();
+	const auto& seg = state_.getSnake().getSegments();
+	// Point (x, y) of the grid of faces sits at (x + 0.5 + EPS_X, y + 0.5 + EPS_Y); the unequal
+	// nudge keeps a diagonal closing edge from passing exactly through a point, where the winding number is undefined. Cast a ray to +x from each
+	// point; every edge of the curve that crosses the ray's height to its right adds +1 (down) or -1 (up)
+	const double EPS_X = 1.4142e-4, EPS_Y = 1e-4;
+	std::vector<int> diff(H * (W + 1), 0);
+	auto edge = [&](int x1, int y1, int x2, int y2) {
+		if (y1 == y2) {
+			return;
+		}
+		int lo = std::min(y1, y2), hi = std::max(y1, y2);
+		int sign = y2 > y1 ? 1 : -1;
+		for (int y = std::max(lo, 0); y < hi && y < H; ++y) {
+			double xc = x1 + static_cast<double>(x2 - x1) * (y + 0.5 + EPS_Y - y1) / (y2 - y1);
+			// Faces x < xc - 0.5 - EPS_X lie left of the crossing
+			int c = static_cast<int>(std::ceil(xc - 0.5 - EPS_X));
+			if (c > 0) {
+				diff[y * (W + 1)] += sign;
+				diff[y * (W + 1) + std::min(c, W)] -= sign;
+			}
+		}
+	};
+	int px = nx, py = ny;
+	for (const SnakeSegment& s : seg) {
+		edge(px, py, s.getX(), s.getY());
+		px = s.getX();
+		py = s.getY();
+	}
+	edge(px, py, nx, ny);
+	int once = 0;
+	for (int y = 0; y < H - 1; ++y) {
+		int w = 0;
+		for (int x = 0; x < W - 1; ++x) {
+			w += diff[y * (W + 1) + x];
+			once += std::abs(w) == 1;
+		}
+	}
+	return static_cast<float>(once) / ((W - 1) * (H - 1));
+}
+
 std::array<float, SnakeEnv::EGO_PER_ACTION> SnakeEnv::ego(int action) const {
 	const SnakeSegment* head = state_.getSnake().getHead();
 	const SnakeSegment& tail = state_.getSnake().getSegments().back();
@@ -79,7 +122,7 @@ std::array<float, SnakeEnv::EGO_PER_ACTION> SnakeEnv::ego(int action) const {
 	int d = turn(dir_, action);
 	int nx = head->getX() + DX[d], ny = head->getY() + DY[d];
 	if (blocked(nx, ny)) {
-		return {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+		return {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 	}
 	int closer = std::abs(head->getX() - food.getX()) + std::abs(head->getY() - food.getY())
 		- std::abs(nx - food.getX()) - std::abs(ny - food.getY());
@@ -111,7 +154,8 @@ std::array<float, SnakeEnv::EGO_PER_ACTION> SnakeEnv::ego(int action) const {
 		open += !blocked(nx + DX[k], ny + DY[k]);
 	}
 	return {0.0f, closer > 0 ? 1.0f : -1.0f, static_cast<float>(room) / std::max(freeCells, 1),
-		tailReach ? 1.0f : 0.0f, std::min(visits_[ny * W + nx], 4) / 4.0f, open / 3.0f};
+		tailReach ? 1.0f : 0.0f, std::min(visits_[ny * W + nx], 4) / 4.0f, open / 3.0f,
+		coil(nx, ny)};
 }
 
 std::vector<float> SnakeEnv::egoFeatures() const {

@@ -11,14 +11,14 @@
 #include <string>
 
 /**
- * Weights for ego features 1..5 (closer, room, tail reachable, loops, open): the weight is base + slope * length fraction,
+ * Weights for ego features 1..6 (closer, room, tail reachable, loops, open, coil): the weight is base + slope * length fraction,
  * so a long snake can value survival over food while a short one chases food
  *
  * Attributes:
- * std::array<float, 10> w: base[5] then slope[5]
+ * std::array<float, 12> w: base[6] then slope[6]
  */
 struct Genome {
-	std::array<float, 10> w{};
+	std::array<float, 12> w{};
 };
 
 /**

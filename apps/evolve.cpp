@@ -6,6 +6,8 @@
 #include "heuristic.hpp"
 
 #include <algorithm>
+#include <cstdlib>
+#include <string>
 #include <cstdio>
 #include <random>
 #include <thread>
@@ -16,7 +18,8 @@ const int POP = 40;
 const int GENERATIONS = 40;
 const int ELITE = 4;
 const int GAMES = 4;
-const int MAX_STEPS = 4000;
+int maxSteps = 4000;  // set from the command line
+bool noCoil = false;  // ablation: keep the coil weights at zero
 const float MUTATION = 0.25f;
 
 /**
@@ -32,7 +35,7 @@ double fitness(const Genome& g, unsigned seedBase) {
 	double total = 0;
 	for (int i = 0; i < GAMES; ++i) {
 		SnakeEnv env(seedBase + i);
-		for (int s = 0; s < MAX_STEPS && !env.dead(); ++s) {
+		for (int s = 0; s < maxSteps && !env.dead(); ++s) {
 			env.step(heuristicAction(g, env));
 		}
 		total += env.score();
@@ -44,6 +47,8 @@ double fitness(const Genome& g, unsigned seedBase) {
 
 int main(int argc, char** argv) {
 	const char* out = argc > 1 ? argv[1] : "genome.txt";
+	if (argc > 2) maxSteps = std::atoi(argv[2]);
+	noCoil = argc > 3 && std::string(argv[3]) == "nocoil";
 	std::mt19937 rng(2024);
 	std::normal_distribution<float> gauss(0.0f, 1.0f);
 	std::uniform_real_distribution<float> unit(0.0f, 1.0f);
@@ -51,6 +56,7 @@ int main(int argc, char** argv) {
 	std::vector<Genome> pop(POP);
 	for (Genome& g : pop) {
 		for (float& x : g.w) x = gauss(rng);
+		if (noCoil) g.w[5] = g.w[11] = 0.0f;
 	}
 	std::vector<double> fit(POP);
 	Genome best;
@@ -96,6 +102,9 @@ int main(int argc, char** argv) {
 				if (unit(rng) < 0.3f) c.w[i] += sigma * gauss(rng);
 			}
 			next.push_back(c);
+		}
+		if (noCoil) {
+			for (Genome& g : next) g.w[5] = g.w[11] = 0.0f;
 		}
 		pop = next;
 	}

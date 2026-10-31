@@ -12,8 +12,8 @@ float heuristicScore(const Genome& g, const std::array<float, SnakeEnv::EGO_PER_
 		return -1e9f;
 	}
 	float s = 0;
-	for (int i = 0; i < 5; ++i) {
-		s += (g.w[i] + g.w[5 + i] * length) * f[i + 1];
+	for (int i = 0; i < 6; ++i) {
+		s += (g.w[i] + g.w[6 + i] * length) * f[i + 1];
 	}
 	return s;
 }
