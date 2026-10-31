@@ -52,7 +52,7 @@ Consequence: with 11 local features (no cycle), imitation stayed at 27.5.
 
 ### 5. Dependencies as git submodules
 
-`snake-game` (tag v2.0.0) and `nn-cpp` (pinned commit) live in `deps/`. They pin the versions, and the project builds without the other two repositories next to it. We tried FetchContent first and dropped it at the user's request.
+`snake-game` (v2.0.0 plus the module reorganization) and `nn-cpp` (pinned commit) live in `deps/`. They pin the versions, and the project builds without the other two repositories next to it. We tried FetchContent first and dropped it at the user's request.
 
 ## Limitations
 

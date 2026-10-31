@@ -34,11 +34,11 @@ endfunction()
 
 # Only the headless game logic of snake-game; no terminal code
 add_library(snake_logic STATIC
-	${SNAKE_DIR}/src/entity.cpp
-	${SNAKE_DIR}/src/food.cpp
-	${SNAKE_DIR}/src/snake_segment.cpp
-	${SNAKE_DIR}/src/snake.cpp
-	${SNAKE_DIR}/src/game_state.cpp
+	${SNAKE_DIR}/src/game/entity.cpp
+	${SNAKE_DIR}/src/game/food.cpp
+	${SNAKE_DIR}/src/game/snake_segment.cpp
+	${SNAKE_DIR}/src/game/snake.cpp
+	${SNAKE_DIR}/src/game/game_state.cpp
 )
 target_include_directories(snake_logic PUBLIC ${SNAKE_DIR}/include)
 

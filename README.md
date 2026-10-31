@@ -45,7 +45,7 @@ make test      # builds everything and runs the tests; binaries land in build/bi
 
 Without `make`: `cmake -S . -B build && cmake --build build -j`. The options `SNAKE_AI_BUILD_APPS`, `SNAKE_AI_BUILD_EXPERIMENTS` and `SNAKE_AI_BUILD_TESTS` switch each part on or off.
 
-Both dependencies are git submodules in `deps/`: `snake-game` at tag v2.0.0 and `nn-cpp` at a pinned commit.
+Both dependencies are git submodules in `deps/`: `snake-game` at v2.0.0 plus the module reorganization (headers under `snake_game/`) and `nn-cpp` at a pinned commit.
 
 ## Usage
 
