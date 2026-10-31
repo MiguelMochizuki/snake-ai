@@ -23,6 +23,7 @@ Os dois projetos entram como submódulos em `deps/`: `snake-game` na tag v2.0.0 
 ./build/compare dqn           # DQN com as features do ciclo
 ./build/compare dqn-ego GENOME   # DQN com features invariantes e shaping
 ./build/compare ga GENOME     # avalia a heurística evoluída
+./build/bfs_safe [partidas]   # experimento do menor caminho
 ./build/evolve GENOME [passos] [nocoil]   # algoritmo genético
 ```
 
@@ -40,6 +41,7 @@ Para ver saída durante o treino, use `stdbuf -oL`, porque o stdout fica em buff
 | `include/heuristic.hpp`, `src/heuristic.cpp` | Heurística invariante com pesos dependentes do tamanho |
 | `apps/compare.cpp` | Avalia e treina expert, imitação, DQN e heurística |
 | `apps/evolve.cpp` | Algoritmo genético |
+| `experiments/bfs_safe.cpp` | Experimento: menor caminho por BFS com teste de segurança da cauda |
 | `apps/watch.cpp` | Modo de assistir: carrega um checkpoint e joga no terminal |
 | `include/policy_net.hpp` | Arquitetura da rede e escolha gulosa, compartilhadas |
 | `models/imitation.ckpt` | Rede treinada por imitação |

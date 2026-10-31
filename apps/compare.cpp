@@ -54,18 +54,21 @@ template <class Policy>
 void evaluate(const char* name, Policy policy) {
 	std::vector<int> scores;
 	int deaths = 0;
+	double steps = 0;
 	for (int g = 0; g < EVAL_GAMES; ++g) {
 		SnakeEnv env(EVAL_SEED + g);
-		for (int i = 0; i < EVAL_MAX_STEPS && !env.dead(); ++i) {
+		int i = 0;
+		for (; i < EVAL_MAX_STEPS && !env.dead(); ++i) {
 			env.step(policy(env));
 		}
+		steps += i;
 		deaths += env.dead() && env.score() < 397;
 		scores.push_back(env.score());
 	}
 	double mean = std::accumulate(scores.begin(), scores.end(), 0.0) / scores.size();
-	std::printf("%-10s mean %6.1f  min %3d  max %3d  deaths %d/%d\n", name, mean,
+	std::printf("%-10s mean %6.1f  min %3d  max %3d  deaths %d/%d  steps/game %.0f\n", name, mean,
 		*std::min_element(scores.begin(), scores.end()), *std::max_element(scores.begin(), scores.end()),
-		deaths, EVAL_GAMES);
+		deaths, EVAL_GAMES, steps / EVAL_GAMES);
 	std::fflush(stdout);
 }
 

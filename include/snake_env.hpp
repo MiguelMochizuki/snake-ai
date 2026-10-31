@@ -143,6 +143,7 @@ public:
 	static int turn(int dir, int action);
 
 	bool dead() const { return dead_; }
+	int sinceFood() const { return sinceFood_; }
 	int score() const { return state_.getScore() + (won_ ? 1 : 0); }
 	int dir() const { return dir_; }
 	int headVisits() const { return visits_[state_.getSnake().getHead()->getY() * state_.getCols() + state_.getSnake().getHead()->getX()]; }

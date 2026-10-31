@@ -60,6 +60,25 @@ Por ação (reto, direita, esquerda), a rede recebe: se está bloqueada, se o ci
 - Um treino e 30 partidas por jogador. As diferenças pequenas (por exemplo, entre as heurísticas) não são conclusivas.
 - Não há testes automatizados no projeto. O app imprime a comparação.
 
+## Tentativa: caminhos mais curtos até a comida
+
+Pergunta: a rede pode, depois de imitar o ciclo, andar em zigue-zague e minimizar a distância até a comida? Primeiro medimos o ritmo do professor (média de 20 partidas):
+
+| Trecho | Passos por comida |
+|---|---|
+| até 25 pontos | 26 |
+| 25 a 100 | 36 |
+| 100 a 200 | 74 |
+| 200 a 300 | 120 |
+| 300 a 397 | 146 |
+
+Uma partida completa leva cerca de 37 mil passos. Testamos duas formas de encurtar:
+
+1. **Menor rota segura dentro da regra do ciclo.** Programação dinâmica sobre os índices do ciclo, aceitando só rotas que avançam no ciclo e ficam antes da cauda. Segura (0 mortes em 30 partidas), mas **sem ganho**: 37 434 passos por partida contra 37 500. Só o começo melhora (26 para 23 passos por comida até 25 pontos). Com a cobra longa o trecho livre à frente é curto, e a comida cai com frequência numa célula pulada por um atalho anterior, que fica atrás da cauda no ciclo; a cobra espera a cauda andar. O limite vem da própria garantia do ciclo. Houve também um erro nosso no caminho: sem tratar a comida atrás da cauda, a rota atravessava o corpo e a cobra morria (média 35,5). Revertemos esse código, porque não trazia ganho.
+2. **Menor rota por BFS com teste de segurança** (`experiments/bfs_safe.cpp`). Segue o BFS até a comida se uma simulação mostrar que a cauda continua alcançável depois de comer; senão, persegue a cauda. Em 10 partidas: **392,4 pontos em média com 23 204 passos** (38% menos que o ciclo), mas as 10 terminam sem encher o tabuleiro: ficam entre 387 e 395 e morrem de fome (600 passos sem comer) quando restam poucas células, porque o teste recusa sempre o caminho até a comida. Relaxar o teste piora muito: aceitar o caminho com mais de 360 de comprimento deu 362,7 pontos e colisões; aceitar após 150 passos sem comer deu 194,4 e colisões.
+
+**Conclusão.** Há um custo claro: o ciclo garante 397 pontos em 37 mil passos; o BFS com teste de cauda faz cerca de 392 em 23 mil, sem garantia e com um final travado. Não treinamos a rede para imitar o BFS: ela precisaria de features que codifiquem a rota e o resultado da simulação (como as features do ciclo codificam o professor atual), e o final travado teria que ser resolvido antes. A abordagem escolhida continua sendo a imitação do ciclo.
+
 ## Rede salva e modo de assistir
 
 `compare imitation` grava o checkpoint (`imitation.ckpt`) e avalia a cópia recarregada, para provar que o arquivo guarda a rede treinada. A rede de `models/imitation.ckpt` enche o tabuleiro (397) nas sementes 1 e 3, em cerca de 36 mil passos. Para assistir:
@@ -72,5 +91,6 @@ Partidas completas passam de 35 mil passos; use, por exemplo, `watch models/imit
 
 ## Próximos passos
 
-1. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
-2. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8 a 397.
+1. Se a velocidade importar mais que a garantia de 397: resolver o final travado do `bfs_safe` (por exemplo, trocar para outra estratégia quando restam poucas células) e treinar a rede com features da rota e da simulação.
+2. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
+3. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8 a 397.
