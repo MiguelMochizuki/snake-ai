@@ -1,0 +1,5 @@
+foreach(app compare evolve imitate_astar selector watch)
+	add_executable(${app} ${app}.cpp)
+	target_link_libraries(${app} PRIVATE snake_ai_core)
+	snake_ai_set_warnings(${app})
+endforeach()

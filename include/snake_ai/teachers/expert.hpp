@@ -6,7 +6,7 @@
 #ifndef EXPERT_HPP
 #define EXPERT_HPP
 
-#include "snake_env.hpp"
+#include "snake_ai/env/snake_env.hpp"
 
 /**
  * Picks the allowed move that lands closest, along the cycle, to the food; with none allowed, the next cycle cell.

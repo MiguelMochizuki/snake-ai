@@ -6,7 +6,7 @@
 #ifndef HEURISTIC_HPP
 #define HEURISTIC_HPP
 
-#include "snake_env.hpp"
+#include "snake_ai/env/snake_env.hpp"
 #include <array>
 #include <string>
 

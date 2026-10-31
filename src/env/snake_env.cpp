@@ -3,8 +3,8 @@
  * Author: Miguel Mochizuki Silva
  * Description: Headless Snake environment implementation
  */
-#include "snake_env.hpp"
-#include "cycle.hpp"
+#include "snake_ai/env/snake_env.hpp"
+#include "snake_ai/env/cycle.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>

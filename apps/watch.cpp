@@ -3,8 +3,8 @@
  * Author: Miguel Mochizuki Silva
  * Description: Plays one game in the terminal with a network loaded from a checkpoint
  */
-#include "astar_policy.hpp"
-#include "policy_net.hpp"
+#include "snake_ai/policy/astar_policy.hpp"
+#include "snake_ai/policy/policy_net.hpp"
 #include "nn/checkpoint.hpp"
 
 #include <chrono>
@@ -83,11 +83,11 @@ int main(int argc, char** argv) {
 			draw(env, step);
 			std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 		}
-		env.step(astar ? astarNetAction(net, agent.actionFeatures(env), env.sinceFood() > 250, true) : greedy(net, env.features()));
+		env.step(astar ? astarNetAction(net, agent.actionFeatures(env), env.sinceFood() > env.loopGuard(), true) : greedy(net, env.features()));
 		++step;
 	}
 	draw(env, step);
 	std::fputs("\033[?25h", stdout);  // show cursor
-	std::printf("%s after %d steps with score %d\n", interrupted ? "Stopped" : env.score() >= 397 ? "Board full" : env.dead() ? "Game over" : "Step limit", step, env.score());
+	std::printf("%s after %d steps with score %d\n", interrupted ? "Stopped" : env.score() >= env.maxScore() ? "Board full" : env.dead() ? "Game over" : "Step limit", step, env.score());
 	return 0;
 }

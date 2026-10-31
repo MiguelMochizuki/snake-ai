@@ -1,0 +1,19 @@
+recorded 188270 states from 48 teacher games
+  epoch 0 loss 0.0276
+  epoch 1 loss 0.0154
+  epoch 2 loss 0.0149
+  epoch 3 loss 0.0145
+  epoch 4 loss 0.0142
+  epoch 5 loss 0.0142
+  epoch 6 loss 0.0140
+  epoch 7 loss 0.0140
+  epoch 8 loss 0.0141
+  epoch 9 loss 0.0140
+  epoch 10 loss 0.0138
+  epoch 11 loss 0.0141
+  epoch 12 loss 0.0139
+  epoch 13 loss 0.0138
+  epoch 14 loss 0.0138
+saved imitation_astar.ckpt
+network, raw           score  397.0  steps   15792  deaths 0/12
+network, safety filter score  397.0  steps   15792  deaths 0/12

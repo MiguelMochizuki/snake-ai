@@ -1,0 +1,11 @@
+labelled 9748 states: A* 6251, shortcuts 2597, cycle 900
+  epoch 2 loss 0.8412
+  epoch 5 loss 0.8318
+  epoch 8 loss 0.8308
+  epoch 11 loss 0.8294
+saved selector.ckpt
+cycle                        score  397.0  steps   39574  deaths 0/12  modes A*  0% shortcuts  0% cycle 100%
+shortcuts                    score  397.0  steps   15943  deaths 0/12  modes A*  0% shortcuts 100% cycle  0%
+A*                           score  397.0  steps   15792  deaths 0/12  modes A* 98% shortcuts  0% cycle  2%
+A* until 100, then shortcuts score  397.0  steps   15110  deaths 0/12  modes A* 22% shortcuts 77% cycle  1%
+learned selector             score  397.0  steps   15792  deaths 0/12  modes A* 98% shortcuts  0% cycle  2%

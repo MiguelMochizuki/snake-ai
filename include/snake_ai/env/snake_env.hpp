@@ -6,7 +6,7 @@
 #ifndef SNAKE_ENV_HPP
 #define SNAKE_ENV_HPP
 
-#include "cycle.hpp"
+#include "snake_ai/env/cycle.hpp"
 #include "game_state.hpp"
 #include <array>
 #include <deque>

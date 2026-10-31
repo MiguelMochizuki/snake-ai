@@ -1,0 +1,9 @@
+10x10 A* teacher               score    97.0 / 97    steps     1330 (13.3 per cell)  not full 0/12
+10x10 cycle                    score    97.0 / 97    steps     2431 (24.3 per cell)  not full 0/12
+10x10 network (20x20 weights)  score    97.0 / 97    steps     1330 (13.3 per cell)  not full 0/12
+20x20 A* teacher               score   397.0 / 397   steps    15792 (39.5 per cell)  not full 0/12
+20x20 cycle                    score   397.0 / 397   steps    39574 (98.9 per cell)  not full 0/12
+20x20 network (20x20 weights)  score   397.0 / 397   steps    15792 (39.5 per cell)  not full 0/12
+40x40 A* teacher               score  1597.0 / 1597  steps   199338 (124.6 per cell)  not full 0/4
+40x40 cycle                    score   481.5 / 1597  steps   320000 (200.0 per cell)  not full 4/4
+40x40 network (20x20 weights)  score  1597.0 / 1597  steps   199338 (124.6 per cell)  not full 0/4

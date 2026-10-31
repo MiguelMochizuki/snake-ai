@@ -6,7 +6,7 @@
 #ifndef POLICY_NET_HPP
 #define POLICY_NET_HPP
 
-#include "snake_env.hpp"
+#include "snake_ai/env/snake_env.hpp"
 #include "nn/autograd/value.hpp"
 #include "nn/nn/activation.hpp"
 #include "nn/nn/linear.hpp"

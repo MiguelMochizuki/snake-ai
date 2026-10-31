@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Hamiltonian-cycle teacher implementation
  */
-#include "expert.hpp"
+#include "snake_ai/teachers/expert.hpp"
 
 int expertAction(const SnakeEnv& env) {
 	int best = -1, bestRemaining = 0, cycleStep = STRAIGHT;

@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Trains a network to imitate the safe A* player, then plays it raw and with the safety filter
  */
-#include "astar_policy.hpp"
+#include "snake_ai/policy/astar_policy.hpp"
 #include "nn/checkpoint.hpp"
 #include "nn/nn/loss.hpp"
 #include "nn/optim/adam.hpp"
@@ -37,8 +37,8 @@ const size_t F = SafeAgent::ACTION_FEATURES;
 void record(unsigned seed, std::vector<float>& xs, std::vector<float>& ys) {
 	SnakeEnv env(seed);
 	SafeAgent agent;
-	for (int i = 0; i < 80000 && !env.dead(); ++i) {
-		int a = agent.act(env, env.sinceFood() > 250 ? CYCLE : ASTAR);
+	for (int i = 0; i < 200 * env.size() * env.size() && !env.dead(); ++i) {
+		int a = agent.act(env, env.sinceFood() > env.loopGuard() ? CYCLE : ASTAR);
 		if (i % STRIDE == 0) {
 			std::vector<float> f = agent.actionFeatures(env);
 			xs.insert(xs.end(), f.begin(), f.end());
@@ -63,12 +63,12 @@ void evaluate(const char* name, Sequential& net, bool onlySafe) {
 		SnakeEnv env(EVAL_SEED + g);
 		SafeAgent agent;
 		int i = 0;
-		for (; i < 80000 && !env.dead(); ++i) {
-			env.step(astarNetAction(net, agent.actionFeatures(env), env.sinceFood() > 250, onlySafe));
+		for (; i < 200 * env.size() * env.size() && !env.dead(); ++i) {
+			env.step(astarNetAction(net, agent.actionFeatures(env), env.sinceFood() > env.loopGuard(), onlySafe));
 		}
 		score += env.score();
 		steps += i;
-		died += env.dead() && env.score() < 397;
+		died += env.dead() && env.score() < env.maxScore();
 	}
 	std::printf("%-22s score %6.1f  steps %7.0f  deaths %d/%d\n", name, score / EVAL_GAMES, steps / EVAL_GAMES, died, EVAL_GAMES);
 	std::fflush(stdout);

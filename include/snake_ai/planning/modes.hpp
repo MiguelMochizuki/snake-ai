@@ -6,8 +6,8 @@
 #ifndef MODES_HPP
 #define MODES_HPP
 
-#include "snake_env.hpp"
-#include "tiles.hpp"
+#include "snake_ai/env/snake_env.hpp"
+#include "snake_ai/planning/tiles.hpp"
 
 /**
  * Playing modes. Every move any mode makes leaves the body on some Hamiltonian cycle, so the snake can always follow that cycle

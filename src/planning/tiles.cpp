@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Tile-tree Hamiltonian cycles
  */
-#include "tiles.hpp"
+#include "snake_ai/planning/tiles.hpp"
 #include <algorithm>
 #include <numeric>
 

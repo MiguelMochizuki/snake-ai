@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Hamiltonian cycle table
  */
-#include "cycle.hpp"
+#include "snake_ai/env/cycle.hpp"
 #include <array>
 
 namespace {

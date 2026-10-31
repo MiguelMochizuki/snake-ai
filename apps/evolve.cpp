@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Genetic algorithm that evolves the heuristic's length-dependent weights
  */
-#include "heuristic.hpp"
+#include "snake_ai/teachers/heuristic.hpp"
 
 #include <algorithm>
 #include <cstdlib>

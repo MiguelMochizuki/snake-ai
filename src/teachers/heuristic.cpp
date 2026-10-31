@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Move heuristic implementation
  */
-#include "heuristic.hpp"
+#include "snake_ai/teachers/heuristic.hpp"
 #include <fstream>
 #include <stdexcept>
 

@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Trains a network to pick the playing mode (A*, shortcuts, cycle) from rollouts, then compares it with fixed schedules
  */
-#include "modes.hpp"
+#include "snake_ai/planning/modes.hpp"
 #include "nn/autograd/value.hpp"
 #include "nn/checkpoint.hpp"
 #include "nn/nn/activation.hpp"
@@ -85,7 +85,7 @@ std::vector<Sample> collect(unsigned seed) {
 			}
 			out.push_back({agent.features(env), best});
 		}
-		env.step(agent.act(env, env.sinceFood() > 250 ? CYCLE : mode));
+		env.step(agent.act(env, env.sinceFood() > env.loopGuard() ? CYCLE : mode));
 	}
 	return out;
 }
@@ -105,14 +105,14 @@ void evaluate(const char* name, const std::function<Mode(const SnakeEnv&, SafeAg
 		SnakeEnv env(EVAL_SEED + g);
 		SafeAgent agent;
 		int i = 0;
-		for (; i < 80000 && !env.dead(); ++i) {
-			Mode m = env.sinceFood() > 250 ? CYCLE : pick(env, agent);
+		for (; i < 200 * env.size() * env.size() && !env.dead(); ++i) {
+			Mode m = env.sinceFood() > env.loopGuard() ? CYCLE : pick(env, agent);
 			++used[m];
 			env.step(agent.act(env, m));
 		}
 		score += env.score();
 		steps += i;
-		died += env.dead() && env.score() < 397;
+		died += env.dead() && env.score() < env.maxScore();
 	}
 	double total = used[0] + used[1] + used[2];
 	std::printf("%-28s score %6.1f  steps %7.0f  deaths %d/%d  modes A* %2.0f%% shortcuts %2.0f%% cycle %2.0f%%\n", name,

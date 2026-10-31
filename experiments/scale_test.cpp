@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Plays the safe A* player and the network trained on 20x20 on other board sizes, without retraining
  */
-#include "astar_policy.hpp"
+#include "snake_ai/policy/astar_policy.hpp"
 #include "nn/checkpoint.hpp"
 
 #include <cstdio>

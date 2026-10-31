@@ -6,7 +6,7 @@
 #ifndef ASTAR_POLICY_HPP
 #define ASTAR_POLICY_HPP
 
-#include "modes.hpp"
+#include "snake_ai/planning/modes.hpp"
 #include "nn/autograd/value.hpp"
 #include "nn/nn/activation.hpp"
 #include "nn/nn/linear.hpp"

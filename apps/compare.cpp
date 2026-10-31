@@ -3,10 +3,10 @@
  * Author: Miguel Mochizuki Silva
  * Description: Compares the Hamiltonian expert, a network trained to imitate it and a DQN agent on fresh games
  */
-#include "expert.hpp"
-#include "heuristic.hpp"
-#include "policy_net.hpp"
-#include "snake_env.hpp"
+#include "snake_ai/teachers/expert.hpp"
+#include "snake_ai/teachers/heuristic.hpp"
+#include "snake_ai/policy/policy_net.hpp"
+#include "snake_ai/env/snake_env.hpp"
 #include "nn/checkpoint.hpp"
 #include "nn/nn/loss.hpp"
 #include "nn/optim/adam.hpp"
@@ -62,7 +62,7 @@ void evaluate(const char* name, Policy policy) {
 			env.step(policy(env));
 		}
 		steps += i;
-		deaths += env.dead() && env.score() < 397;
+		deaths += env.dead() && env.score() < env.maxScore();
 		scores.push_back(env.score());
 	}
 	double mean = std::accumulate(scores.begin(), scores.end(), 0.0) / scores.size();

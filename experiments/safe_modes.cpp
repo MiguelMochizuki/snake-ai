@@ -3,7 +3,7 @@
  * Author: Miguel Mochizuki Silva
  * Description: Checks the tile-tree cycle construction, then plays the three modes and some fixed switching schedules
  */
-#include "modes.hpp"
+#include "snake_ai/planning/modes.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -86,8 +86,8 @@ Result play(const std::function<Mode(const SnakeEnv&)>& pick, int games) {
 			SnakeEnv env(100000 + g);
 			SafeAgent agent;
 			int i = 0;
-			for (; i < 80000 && !env.dead(); ++i) {
-				Mode m = env.sinceFood() > 250 ? CYCLE : pick(env);  // guards against loops
+			for (; i < 200 * env.size() * env.size() && !env.dead(); ++i) {
+				Mode m = env.sinceFood() > env.loopGuard() ? CYCLE : pick(env);  // guards against loops
 				env.step(agent.act(env, m));
 			}
 			parts[g] = {static_cast<double>(env.score()), static_cast<double>(i), env.dead() && env.score() < 397};

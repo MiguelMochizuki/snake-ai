@@ -1,10 +1,10 @@
-#include <algorithm>
 /**
  * bfs_safe.cpp
  * Author: Miguel Mochizuki Silva
  * Description: Experiment: shortest path to the food, accepted only if a simulation shows the tail stays reachable; otherwise chase the tail
  */
-#include "snake_env.hpp"
+#include "snake_ai/env/snake_env.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <queue>
 #include <cstdlib>
@@ -56,8 +56,8 @@ int main(int argc, char** argv) {
 	for (int g = 0; g < games; ++g) {
 		SnakeEnv e(100000 + g); int i = 0;
 		for (; i < 60000 && !e.dead(); ++i) e.step(safeAction(e));
-		sc += e.score(); st += i; deaths += e.dead() && e.score() < 397;
-		std::printf("game %d score %d steps %d %s\n", g, e.score(), i, e.dead() && e.score() < 397 ? (e.sinceFood() >= 600 ? "starved" : "collided") : "");
+		sc += e.score(); st += i; deaths += e.dead() && e.score() < e.maxScore();
+		std::printf("game %d score %d steps %d %s\n", g, e.score(), i, e.dead() && e.score() < e.maxScore() ? (e.sinceFood() >= 600 ? "starved" : "collided") : "");
 		std::fflush(stdout);
 	}
 	std::printf("mean score %.1f  mean steps %.0f  deaths %d/%d\n", sc / games, st / games, deaths, games);

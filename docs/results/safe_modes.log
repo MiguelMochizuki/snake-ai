@@ -1,0 +1,15 @@
+construction 10x10: ok
+construction 20x20: ok
+construction 40x40: ok
+cycle                        score  397.0  steps   39574  deaths 0/12
+shortcuts                    score  397.0  steps   15943  deaths 0/12
+A*                           score  397.0  steps   15792  deaths 0/12
+A* until 100, then shortcuts score  397.0  steps   15110  deaths 0/12
+shortcuts until 100, then A* score  397.0  steps   17022  deaths 0/12
+A* until 100, then cycle     score  397.0  steps   26023  deaths 0/12
+A* until 200, then shortcuts score  397.0  steps   15427  deaths 0/12
+shortcuts until 200, then A* score  397.0  steps   16408  deaths 0/12
+A* until 200, then cycle     score  397.0  steps   19328  deaths 0/12
+A* until 300, then shortcuts score  397.0  steps   15724  deaths 0/12
+shortcuts until 300, then A* score  397.0  steps   16165  deaths 0/12
+A* until 300, then cycle     score  397.0  steps   16504  deaths 0/12

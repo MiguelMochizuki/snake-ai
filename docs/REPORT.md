@@ -1,184 +1,187 @@
-# Relatório: IA para o jogo da cobrinha
+# Report: AI for the snake game
 
-## Resumo
+## Summary
 
-**Atualização:** o esquema de ladrilhos (seção abaixo) deu um jogador mais rápido que o ciclo e igualmente seguro: o A* com garantia faz 397 pontos em cerca de 15 800 passos, contra 39 600 do ciclo. Uma rede treinada para imitar esse A* seguro (seção "Imitação do A* seguro") reproduz o professor: 397 pontos, 15 792 passos, 0 mortes em 12 partidas. A imitação escolhida passa a ser essa; a rede do ciclo fica como primeira versão.
+**Update:** the tile scheme (section below) gave a player that is faster than the cycle and just as safe: the guaranteed A\* scores 397 points in about 15,800 steps, against 39,600 for the cycle. A network trained to imitate that safe A\* (section "Imitating the safe A\*") reproduces the teacher: 397 points, 15,792 steps, 0 deaths in 12 games. The chosen imitation is now that one; the cycle network stays as the first version.
 
-Comparamos quatro jogadores no `snake-game` v2.0.0, tabuleiro 20x20. A **imitação** foi escolhida: uma rede 13→32→32→3 treinada para copiar o jogador do ciclo hamiltoniano chega a 393,8 pontos em média, de um máximo de 397 (tabuleiro cheio). Os dois caminhos que aprendem sem professor ficaram bem atrás.
+We compared four players on `snake-game` v2.0.0, 20x20 board. **Imitation** was chosen: a 13→32→32→3 network trained to copy the Hamiltonian cycle player reaches 393.8 points on average out of a maximum of 397 (full board). The two approaches that learn without a teacher fell well behind.
 
-## Como medimos
+## How we measured
 
-- 30 partidas novas por jogador, com as mesmas sementes de comida (100000 a 100029), nunca usadas no treino.
-- Limite de 60 000 passos por partida. Uma partida também termina por falta de comida: 600 passos sem comer contam como morte.
-- Pontuação máxima: 397, que é o tabuleiro de 400 células com a cobra inicial de 3. Encher o tabuleiro conta como vitória.
-- Cada número vem de **um** treino e de **um** conjunto de 30 partidas. O treino não é determinístico: ao retreinar a imitação para salvar o modelo, a média foi 397,0 (0 mortes) em vez de 393,8. Não repetimos com várias sementes.
+- 30 fresh games per player, with the same food seeds (100000 to 100029), never used in training.
+- Cap of 60,000 steps per game. A game also ends by starvation: 600 steps without eating count as a death.
+- Maximum score: 397, the 400-cell board with the initial snake of 3. Filling the board counts as a win.
+- Each number comes from **one** training run and **one** set of 30 games. Training is not deterministic: retraining the imitation network to save the model gave a mean of 397.0 (0 deaths) instead of 393.8. We did not repeat with several seeds.
 
-## Resultados
+## Results
 
-| Jogador | Média | Mín | Máx | Mortes |
+| Player | Mean | Min | Max | Deaths |
 |---|---|---|---|---|
-| Especialista (ciclo hamiltoniano com atalhos seguros) | 397,0 | 397 | 397 | 0/30 |
-| **Imitação** (13 features, MLP 13→32→32→3, Adam) | **393,8** (outro treino: 397,0) | 301 | 397 | 1/30 (outro treino: 0/30) |
-| Heurística evoluída por GA, com termo de enrolamento, 20 mil passos na evolução | 263,5 | 173 | 369 | 30/30 |
-| Heurística evoluída por GA, sem o termo, 20 mil passos na evolução | 251,7 | 122 | 385 | 30/30 |
-| DQN com features invariantes e heurística como shaping | 38,5 | 14 | 74 | 30/30 |
-| DQN com as features do ciclo | 7,3 | 0 | 24 | 30/30 |
+| Expert (Hamiltonian cycle with safe shortcuts) | 397.0 | 397 | 397 | 0/30 |
+| **Imitation** (13 features, MLP 13→32→32→3, Adam) | **393.8** (other run: 397.0) | 301 | 397 | 1/30 (other run: 0/30) |
+| Heuristic evolved by GA, with winding term, 20k steps during evolution | 263.5 | 173 | 369 | 30/30 |
+| Heuristic evolved by GA, without the term, 20k steps during evolution | 251.7 | 122 | 385 | 30/30 |
+| DQN with invariant features and heuristic shaping | 38.5 | 14 | 74 | 30/30 |
+| DQN with the cycle features | 7.3 | 0 | 24 | 30/30 |
 
-Primeira versão, com outro especialista e outro conjunto de teste (100 partidas): o especialista BFS fazia 64,1 em média e a rede, com 11 features locais e SGD, 27,5.
+First version, with another expert and another test set (100 games): the BFS expert averaged 64.1 and the network, with 11 local features and SGD, 27.5.
 
-## Decisões e justificativas
+## Decisions and rationale
 
-### 1. Trocar o especialista BFS pelo ciclo hamiltoniano
+### 1. Replace the BFS expert with the Hamiltonian cycle
 
-O BFS leva a cobra até a comida pelo caminho mais curto, mas ela acaba se prendendo (média 64). O ciclo hamiltoniano percorre todas as células numa ordem fixa. Com atalhos que só avançam e nunca passam da cauda, o corpo continua em ordem de ciclo e a cobra nunca se prende. Venceu as 30 partidas.
-**Consequência:** o professor passou a ser perfeito, então o teto da imitação subiu de 64 para 397.
+BFS takes the snake to the food by the shortest path, but it ends up trapping itself (mean 64). The Hamiltonian cycle visits every cell in a fixed order. With shortcuts that only move forward and never pass the tail, the body stays in cycle order and the snake never traps itself. It won all 30 games.
+**Consequence:** the teacher became perfect, so the ceiling for imitation rose from 64 to 397.
 
-### 2. Dar à rede features relativas ao ciclo
+### 2. Give the network cycle-relative features
 
-Por ação (reto, direita, esquerda), a rede recebe: se está bloqueada, se o ciclo permite o movimento, e a distância restante até a comida pelo ciclo (dividida por 400). Mais a direção atual em one-hot, no total de 13 valores. A decisão do especialista (menor distância entre os movimentos permitidos) fica uma função simples dessas features, fácil de aprender: a loss chega a 0,0001.
-**Consequência:** com 11 features locais (sem o ciclo) a imitação ficava em 27,5.
+Per action (straight, right, left) the network receives: whether it is blocked, whether the cycle allows the move, and the remaining distance to the food along the cycle (divided by 400). Plus the current heading as one-hot, 13 values in total. The expert's decision (smallest distance among the allowed moves) becomes a simple function of these features, easy to learn: the loss reaches 0.0001.
+**Consequence:** with 11 local features (no cycle), imitation stayed at 27.5.
 
-### 3. Escolher a imitação
+### 3. Choose imitation
 
-- Atinge 98% da pontuação do especialista (393,8 de 397), contra 66% do melhor caminho sem professor (heurística com GA, 263,5) e 10% do melhor DQN (38,5).
-- Treina em cerca de 1 minuto. O DQN gasta 300 mil passos e não passa de 40 pontos.
-- É supervisionada, então usa o `nn-cpp` sem precisar de componentes de aprendizado por reforço que ele não tem.
+- It reaches 98% of the expert's score (393.8 of 397), against 66% for the best teacher-free path (GA heuristic, 263.5) and 10% for the best DQN (38.5).
+- It trains in about 1 minute. DQN spends 300 thousand steps and does not pass 40 points.
+- It is supervised, so it uses `nn-cpp` without needing reinforcement learning components that the library does not have.
 
-### 4. O que não adotamos, e por quê
+### 4. What we did not adopt, and why
 
-- **DQN:** aprende a não morrer de imediato, mas não a planejar. Com gamma 0,95 o horizonte é de uns 20 passos, e a comida costuma estar a mais de 100 passos no ciclo. Features invariantes, shaping pela heurística, penalidade de morte proporcional ao tamanho e penalidade de laços elevaram de 7,3 para 38,5, ainda longe. Gamma maior, mais passos e Double DQN não foram testados.
-- **Algoritmo genético sobre a heurística:** chegou a cerca de 260 pontos, mas toda partida termina em morte. A heurística é invariante a rotação e a escala e tem pesos que dependem do tamanho da cobra, o que era o objetivo, mas não dá a garantia que o ciclo dá.
-- **Termo de enrolamento** (pontos do tabuleiro com número de enrolamento igual a 1 em relação à curva fechada formada pelo corpo): melhorou a média em 3% a 5%, na mesma direção nas duas rodadas, mas com uma evolução por configuração e notas que variam de 173 a 369, não dá para afirmar que o efeito é real. O cálculo foi verificado contra uma soma de ângulos por força bruta, sem divergências em 2200 estados.
+- **DQN:** it learns not to die immediately, but not to plan. With gamma 0.95 the horizon is about 20 steps, and the food is often more than 100 steps away along the cycle. Invariant features, heuristic shaping, a death penalty proportional to size and a loop penalty raised it from 7.3 to 38.5, still far off. A larger gamma, more steps and Double DQN were not tested.
+- **Genetic algorithm over the heuristic:** it reached about 260 points, but every game ends in death. The heuristic is invariant to rotation and scale and has weights that depend on snake size, which was the goal, but it does not give the guarantee the cycle gives.
+- **Winding-number term** (board points with winding number 1 with respect to the closed curve formed by the body): it improved the mean by 3% to 5%, in the same direction in both rounds, but with one evolution per configuration and scores ranging from 173 to 369, we cannot claim the effect is real. The computation was checked against a brute-force angle sum, with no divergence in 2,200 states.
 
-### 5. Dependências como submódulos git
+### 5. Dependencies as git submodules
 
-`snake-game` (tag v2.0.0) e `nn-cpp` (commit fixo) entram em `deps/`. Fixam as versões, e o projeto compila sem ter os outros dois repositórios ao lado. Tentamos antes o FetchContent e abandonamos a pedido.
+`snake-game` (tag v2.0.0) and `nn-cpp` (pinned commit) live in `deps/`. They pin the versions, and the project builds without the other two repositories next to it. We tried FetchContent first and dropped it at the user's request.
 
-## Limitações
+## Limitations
 
-- As features do ciclo valem para o tabuleiro 20x20 e para o ciclo escolhido. A imitação **não é invariante** a rotação nem a escala, ao contrário da heurística. Para outro tamanho é preciso gerar outro ciclo e treinar de novo.
-- A rede aprende a regra do especialista, não descobre uma estratégia. O que ela faz de melhor é o que o especialista já faz.
-- A única morte da imitação (301 pontos) aconteceu numa partida longa. Não investigamos a causa.
-- Um treino e 30 partidas por jogador. As diferenças pequenas (por exemplo, entre as heurísticas) não são conclusivas.
-- Não há testes automatizados no projeto. O app imprime a comparação.
+- The cycle features hold for the 20x20 board and the chosen cycle. The cycle imitation is **not invariant** to rotation or scale, unlike the heuristic. For another size a different cycle must be generated and the network retrained.
+- The network learns the expert's rule, it does not discover a strategy. The best it can do is what the expert already does.
+- The single death of the imitation (301 points) happened in a long game. We did not investigate the cause.
+- One training run and 30 games per player. Small differences (for example, between the heuristics) are not conclusive.
 
-## Tentativa: caminhos mais curtos até a comida
+## Attempt: shorter paths to the food
 
-Pergunta: a rede pode, depois de imitar o ciclo, andar em zigue-zague e minimizar a distância até a comida? Primeiro medimos o ritmo do professor (média de 20 partidas):
+Question: after imitating the cycle, can the network zigzag and minimize the distance to the food? First we measured the teacher's pace (mean of 20 games):
 
-| Trecho | Passos por comida |
+| Stretch | Steps per food |
 |---|---|
-| até 25 pontos | 26 |
-| 25 a 100 | 36 |
-| 100 a 200 | 74 |
-| 200 a 300 | 120 |
-| 300 a 397 | 146 |
+| up to 25 points | 26 |
+| 25 to 100 | 36 |
+| 100 to 200 | 74 |
+| 200 to 300 | 120 |
+| 300 to 397 | 146 |
 
-Uma partida completa leva cerca de 37 mil passos. Testamos duas formas de encurtar:
+A full game takes about 37 thousand steps. We tried two ways to shorten it:
 
-1. **Menor rota segura dentro da regra do ciclo.** Programação dinâmica sobre os índices do ciclo, aceitando só rotas que avançam no ciclo e ficam antes da cauda. Segura (0 mortes em 30 partidas), mas **sem ganho**: 37 434 passos por partida contra 37 500. Só o começo melhora (26 para 23 passos por comida até 25 pontos). Com a cobra longa o trecho livre à frente é curto, e a comida cai com frequência numa célula pulada por um atalho anterior, que fica atrás da cauda no ciclo; a cobra espera a cauda andar. O limite vem da própria garantia do ciclo. Houve também um erro nosso no caminho: sem tratar a comida atrás da cauda, a rota atravessava o corpo e a cobra morria (média 35,5). Revertemos esse código, porque não trazia ganho.
-2. **Menor rota por BFS com teste de segurança** (`experiments/bfs_safe.cpp`). Segue o BFS até a comida se uma simulação mostrar que a cauda continua alcançável depois de comer; senão, persegue a cauda. Em 10 partidas: **392,4 pontos em média com 23 204 passos** (38% menos que o ciclo), mas as 10 terminam sem encher o tabuleiro: ficam entre 387 e 395 e morrem de fome (600 passos sem comer) quando restam poucas células, porque o teste recusa sempre o caminho até a comida. Relaxar o teste piora muito: aceitar o caminho com mais de 360 de comprimento deu 362,7 pontos e colisões; aceitar após 150 passos sem comer deu 194,4 e colisões.
+1. **Shortest safe route inside the cycle rule.** Dynamic programming over cycle indices, accepting only routes that advance along the cycle and stay before the tail. Safe (0 deaths in 30 games), but **no gain**: 37,434 steps per game against 37,500. Only the start improves (26 to 23 steps per food up to 25 points). With a long snake the free stretch ahead is short, and the food often lands on a cell skipped by an earlier shortcut, which sits behind the tail on the cycle; the snake waits for the tail to move. The limit comes from the cycle's own guarantee. There was also a mistake of ours along the way: without handling food behind the tail, the route crossed the body and the snake died (mean 35.5). We reverted that code, since it brought no gain.
+2. **Shortest route by BFS with a safety test** (`experiments/bfs_safe.cpp`). It follows BFS to the food if a simulation shows the tail stays reachable after eating; otherwise it chases the tail. In 10 games: **392.4 points on average with 23,204 steps** (38% fewer than the cycle), but all 10 end without filling the board: they land between 387 and 395 and starve (600 steps without eating) when few cells remain, because the test always rejects the path to the food. Relaxing the test is much worse: accepting a path longer than 360 gave 362.7 points and collisions; accepting after 150 steps without eating gave 194.4 and collisions.
 
-**Conclusão.** Há um custo claro: o ciclo garante 397 pontos em 37 mil passos; o BFS com teste de cauda faz cerca de 392 em 23 mil, sem garantia e com um final travado. Não treinamos a rede para imitar o BFS: ela precisaria de features que codifiquem a rota e o resultado da simulação (como as features do ciclo codificam o professor atual), e o final travado teria que ser resolvido antes. A abordagem escolhida continua sendo a imitação do ciclo.
+**Conclusion.** There is a clear cost: the cycle guarantees 397 points in 37 thousand steps; BFS with the tail test makes about 392 in 23 thousand, with no guarantee and a stuck ending. We did not train the network to imitate BFS: it would need features encoding the route and the simulation result (as the cycle features encode the current teacher), and the stuck ending would have to be solved first. The chosen approach remained cycle imitation.
 
-## Esquema de ladrilhos: ciclos hamiltonianos dinâmicos
+## Tile scheme: dynamic Hamiltonian cycles
 
-O A* sozinho não é seguro: ele quebra a ordem de ciclo do corpo e o final fica travado (ver acima). Um esquema de ladrilhos 2x2 (setas por célula, como nas figuras que você trouxe) resolve isso. O tabuleiro vira uma grade de 10x10 ladrilhos. Qualquer árvore geradora dessa grade define um ciclo hamiltoniano das 400 células: ao longo de uma aresta da árvore o ciclo atravessa a borda do ladrilho nas duas faixas; dentro de um ladrilho ele usa o par de células de cada lado que não tem aresta da árvore.
+A\* alone is not safe: it breaks the body's cycle order and the ending gets stuck (see above). A scheme of 2x2 tiles (per-cell arrows) solves this. The board becomes a 10x10 grid of tiles. Any spanning tree of that grid defines a Hamiltonian cycle of the 400 cells: along a tree edge the cycle crosses the tile border in both lanes; inside a tile it uses the pair of cells on each side that has no tree edge.
 
-Cada passo do corpo impõe uma condição à árvore: passar entre ladrilhos obriga a aresta a estar na árvore; andar dentro de um ladrilho obriga a aresta do lado correspondente a ficar fora. O corpo está sobre **algum** ciclo exatamente quando existe uma árvore geradora que respeita todas as condições. Isso se decide com union-find: as arestas obrigatórias não podem fechar laço, e as arestas não proibidas precisam conectar a grade (`src/tiles.cpp`). Se um movimento deixa o corpo sobre algum ciclo, a cobra sempre pode seguir esse ciclo até a cauda, e os modos podem ser trocados a qualquer passo.
+Each step of the body imposes a condition on the tree: passing between tiles forces that edge to be in the tree; moving inside a tile forces the edge of the corresponding side to stay out. The body lies on **some** cycle exactly when a spanning tree exists that respects all conditions. This is decided with union-find: the mandatory edges cannot close a loop, and the non-forbidden edges must connect the grid (`src/planning/tiles.cpp`). If a move leaves the body on some cycle, the snake can always follow that cycle to its tail, and the modes can be switched at any step.
 
-Validação: 50 árvores aleatórias dão ciclo único com grau 2 em todas as células, e todo prefixo do ciclo é aceito como corpo (`experiments/safe_modes.cpp`).
+Validation: 50 random trees give a single cycle with degree 2 at every cell, and every prefix of the cycle is accepted as a body (`experiments/safe_modes.cpp`).
 
-Modos (`src/modes.cpp`), todos restritos aos movimentos que mantêm essa propriedade:
+Modes (`src/planning/modes.cpp`), all restricted to moves that keep this property:
 
-- **A\*:** o movimento seguro com menor caminho real até a comida.
-- **Atalhos:** o movimento seguro mais próximo da comida ao longo do ciclo atual.
-- **Ciclo:** segue o ciclo.
+- **A\*:** the safe move with the shortest real path to the food.
+- **Shortcuts:** the safe move closest to the food along the current cycle.
+- **Cycle:** follows the cycle.
 
-12 partidas, mesmas sementes, 397 = tabuleiro cheio:
+12 games, same seeds, 397 = full board:
 
-| Estratégia | Pontos | Passos por partida | Mortes |
+| Strategy | Points | Steps per game | Deaths |
 |---|---|---|---|
-| Ciclo puro | 397 | 39 574 | 0/12 |
-| Atalhos | 397 | 15 943 | 0/12 |
-| A\* | 397 | 15 792 | 0/12 |
-| A\* até 100, depois atalhos | 397 | 15 110 | 0/12 |
-| Atalhos até 100, depois A\* | 397 | 17 022 | 0/12 |
-| A\* até 100, depois ciclo | 397 | 26 023 | 0/12 |
-| A\* até 300, depois ciclo | 397 | 16 504 | 0/12 |
+| Pure cycle | 397 | 39,574 | 0/12 |
+| Shortcuts | 397 | 15,943 | 0/12 |
+| A\* | 397 | 15,792 | 0/12 |
+| A\* until 100, then shortcuts | 397 | 15,110 | 0/12 |
+| Shortcuts until 100, then A\* | 397 | 17,022 | 0/12 |
+| A\* until 100, then cycle | 397 | 26,023 | 0/12 |
+| A\* until 300, then cycle | 397 | 16,504 | 0/12 |
 
-Com a garantia, o A\* enche o tabuleiro em 60% menos passos que o ciclo e sem nenhuma morte, o que o BFS com teste de cauda não conseguia (392 pontos e final travado). A tentativa anterior de atalhos "clássicos" (pular células do ciclo fixo) quebra a propriedade, porque o corpo deixa de ser um trecho contínuo do ciclo; dentro do esquema, atalhos viram um critério de escolha entre os movimentos seguros.
+With the guarantee, A\* fills the board in 60% fewer steps than the cycle and with no deaths, which BFS with the tail test could not do (392 points and a stuck ending). The earlier attempt at "classic" shortcuts (skipping cells of the fixed cycle) breaks the property, because the body stops being a contiguous stretch of the cycle; inside the scheme, shortcuts become a criterion for choosing among safe moves.
 
-### Seletor de modo aprendido
+### Learned mode selector
 
-`apps/selector.cpp`: 9748 estados amostrados em 48 partidas com troca aleatória de modo. Em cada estado, cada modo é mantido por 100 passos e seguido por 150 passos de A\*; o rótulo é o modo que comeu mais, só trocando do A\* se ganhar por pelo menos uma comida (A\* 6251, atalhos 2597, ciclo 900). Rede 8→32→32→3 sobre 8 features sem escala (tamanho, distâncias até a comida e à cauda, passos sem comer, comida antes da cauda, movimentos seguros).
+`apps/selector.cpp`: 9,748 states sampled over 48 games with random mode switching. At each state, each mode is held for 100 steps and followed by 150 steps of A\*; the label is the mode that ate the most, switching away from A\* only if it wins by at least one food (A\* 6251, shortcuts 2597, cycle 900). An 8→32→32→3 network over 8 scale-free features (size, distances to food and tail, steps without eating, food before tail, safe moves).
 
-O seletor aprendido escolhe A\* em 98% dos passos e termina em 15 792 passos, igual ao A\* puro. A loss fica em 0,83, ou seja, os rótulos são ruidosos: a diferença entre modos em 250 passos é de poucas comidas. A melhor troca fixa (A\* até 100, depois atalhos) ganha 4% sobre o A\*, com 12 partidas e sem repetir, então não dá para afirmar que é real.
+The learned selector picks A\* in 98% of steps and finishes in 15,792 steps, the same as pure A\*. The loss stays at 0.83, so the labels are noisy: the difference between modes over 250 steps is a few foods. The best fixed switch (A\* until 100, then shortcuts) gains 4% over A\*, with 12 games and no repetition, so we cannot say it is real.
 
-**Conclusão.** Escolher entre os três modos rende pouco; o ganho veio da garantia de segurança, não da escolha. O A\* seguro é o melhor jogador em velocidade e dá 397 sempre.
+**Conclusion.** Choosing among the three modes yields little; the gain came from the safety guarantee, not from the choice. Safe A\* is the best player on speed and always scores 397.
 
-## Imitação do A* seguro
+## Imitating the safe A\*
 
-`apps/imitate_astar.cpp` treina uma rede 12→32→32→3 para imitar o A* seguro (188 270 estados de 48 partidas do professor, um estado em quatro, Adam, 15 épocas). As 12 features são, por ação (reto, direita, esquerda): bloqueada, segura (o corpo continua sobre algum ciclo), quantos passos o caminho livre até a comida é mais longo que o do melhor movimento seguro (limitado a 4, dividido por 4) e se é o próximo passo do ciclo. Não dependem de rotação.
+`apps/imitate_astar.cpp` trains a 12→32→32→3 network to imitate the safe A\* (188,270 states from 48 teacher games, one state in four, Adam, 15 epochs). The 12 features are, per action (straight, right, left): blocked, safe (the body stays on some cycle), how many steps longer the free path to the food is than the best safe move's (capped at 4, divided by 4), and whether it is the next step of the cycle. They do not depend on rotation.
 
-12 partidas, mesmas sementes (100000 a 100011), avaliando a cópia recarregada do checkpoint:
+12 games, same seeds (100000 to 100011), evaluating the copy reloaded from the checkpoint:
 
-| Jogador | Pontos | Passos por partida | Mortes |
+| Player | Points | Steps per game | Deaths |
 |---|---|---|---|
-| A\* seguro (professor) | 397 | 15 792 | 0/12 |
-| Rede, sem filtro | 397,0 | 15 792 | 0/12 |
-| Rede, só movimentos seguros | 397,0 | 15 792 | 0/12 |
+| Safe A\* (teacher) | 397 | 15,792 | 0/12 |
+| Network, no filter | 397.0 | 15,792 | 0/12 |
+| Network, safe moves only | 397.0 | 15,792 | 0/12 |
 
-A rede nunca escolheu um movimento inseguro, então o filtro não muda nada aqui. Ele continua no código como garantia. Com 2,5 vezes menos passos que a rede do ciclo (39 574), é o melhor jogador treinado.
+The network never chose an unsafe move, so the filter changes nothing here. It stays in the code as a guarantee. With 2.5 times fewer steps than the cycle network (39,574), it is the best trained player.
 
-O caminho até esse resultado teve dois tropeços, que ficam registrados:
+The road to this result had two stumbles, recorded here:
 
-1. **Distância dividida por 400.** Na primeira versão a feature de distância valia a distância sobre 400, então dois movimentos diferiam por 0,0025 e a rede não os distinguia. Ela girava no começo, sem comer (4 de 12 partidas terminaram em fome com 0 pontos; média 201 a 264, 5 a 6 mortes). Trocar por "passos a mais que o melhor movimento seguro" resolveu, com a loss em 0,014.
-2. **Guarda contra laços.** O professor passa a seguir o ciclo depois de 250 passos sem comer; a rede recebe a mesma guarda no código que joga (`astarNetAction`). Isso não está aprendido pela rede.
+1. **Distance divided by 400.** In the first version the distance feature was the distance over 400, so two moves differed by 0.0025 and the network could not tell them apart. It spun around at the start without eating (4 of 12 games ended in starvation with 0 points; mean 201 to 264, 5 to 6 deaths). Replacing it with "steps more than the best safe move" fixed it, with the loss at 0.014.
+2. **Loop guard.** The teacher follows the cycle after 250 steps without eating; the network gets the same guard in the code that plays (`astarNetAction`). This is not learned by the network.
 
-Limitações: as features já contêm a resposta do professor (a regra é "o menor entre os seguros"), então a rede aprende a ler essa informação, não a descobri-la. O teste de segurança por árvore (`treeFor`) roda a cada passo e é mais caro que a rede. Um treino e 12 partidas.
+Limitations: the features already contain the teacher's answer (the rule is "the shortest among the safe ones"), so the network learns to read that information, not to discover it. The tree safety test (`treeFor`) runs at every step and costs more than the network. One training run and 12 games.
 
-## Outras escalas do tabuleiro, sem retreinar
+## Other board scales, without retraining
 
-`experiments/scale_test.cpp` joga o A* seguro, o ciclo e a rede treinada em 20x20 (`models/imitation_astar.ckpt`, sem retreinar) em tabuleiros de 10x10, 20x20 e 40x40. Para isso o ambiente, os ladrilhos e os modos passaram a aceitar o tamanho do lado (par); a construção do ciclo foi validada nos três (árvores aleatórias, ciclo único, prefixos aceitos). O limite de fome e o limite de passos sem comer para voltar ao ciclo crescem com o número de células (1,5 e 5/8 vezes), assim como o teto de passos por partida (200 por célula). As features da rede não dependem da escala, então os mesmos pesos servem.
+`experiments/scale_test.cpp` plays safe A\*, the cycle and the network trained on 20x20 (`models/imitation_astar.ckpt`, not retrained) on 10x10, 20x20 and 40x40 boards. For this the environment, the tiles and the modes accept the board side (even); cycle construction was validated on all three (random trees, single cycle, prefixes accepted). The starvation limit and the steps-without-food limit for returning to the cycle grow with the number of cells (1.5 and 5/8 times), as does the per-game step cap (200 per cell). The network's features do not depend on scale, so the same weights apply.
 
-12 partidas em 10x10 e 20x20, 4 em 40x40 (as partidas do 40x40 são longas e a rede joga em uma thread só). Pontuação máxima = células menos 3.
+12 games on 10x10 and 20x20, 4 on 40x40 (the 40x40 games are long and the network plays on a single thread). Maximum score = cells minus 3.
 
-| Tabuleiro | Jogador | Pontos | Passos por partida (por célula) | Não encheu |
+| Board | Player | Points | Steps per game (per cell) | Not full |
 |---|---|---|---|---|
-| 10x10 | A* seguro (professor) | 97 / 97 | 1330 (13,3) | 0/12 |
-| 10x10 | Ciclo | 97 / 97 | 2431 (24,3) | 0/12 |
-| 10x10 | **Rede (pesos do 20x20)** | **97 / 97** | **1330 (13,3)** | **0/12** |
-| 20x20 | A* seguro | 397 / 397 | 15 792 (39,5) | 0/12 |
-| 20x20 | Ciclo | 397 / 397 | 39 574 (98,9) | 0/12 |
-| 20x20 | Rede | 397 / 397 | 15 792 (39,5) | 0/12 |
-| 40x40 | A* seguro | 1597 / 1597 | 199 338 (124,6) | 0/4 |
-| 40x40 | Ciclo | 481,5 / 1597 | 320 000 (200,0) | 4/4 (interrompido no teto de passos) |
-| 40x40 | **Rede (pesos do 20x20)** | **1597 / 1597** | **199 338 (124,6)** | **0/4** |
+| 10x10 | Safe A\* (teacher) | 97 / 97 | 1,330 (13.3) | 0/12 |
+| 10x10 | Cycle | 97 / 97 | 2,431 (24.3) | 0/12 |
+| 10x10 | **Network (20x20 weights)** | **97 / 97** | **1,330 (13.3)** | **0/12** |
+| 20x20 | Safe A\* | 397 / 397 | 15,792 (39.5) | 0/12 |
+| 20x20 | Cycle | 397 / 397 | 39,574 (98.9) | 0/12 |
+| 20x20 | Network | 397 / 397 | 15,792 (39.5) | 0/12 |
+| 40x40 | Safe A\* | 1597 / 1597 | 199,338 (124.6) | 0/4 |
+| 40x40 | Cycle | 481.5 / 1597 | 320,000 (200.0) | 4/4 (stopped at the step cap) |
+| 40x40 | **Network (20x20 weights)** | **1597 / 1597** | **199,338 (124.6)** | **0/4** |
 
-A rede treinada só em 20x20 enche o tabuleiro em 10x10 e em 40x40, com exatamente os mesmos passos do professor, ou seja, copia a trajetória inteira. Isso confirma o que as features já sugeriam: movimento seguro, "passos a mais que o melhor seguro" e "próximo passo do ciclo" não mudam com a escala.
+The network trained only on 20x20 fills the board on 10x10 and 40x40 with exactly the teacher's steps, so it copies the whole trajectory. This confirms what the features already suggested: safe move, "steps more than the best safe move" and "next cycle step" do not change with scale.
 
-Observações:
+Observations:
 
-- O A* seguro gasta 13,3, 39,5 e 124,6 passos por célula em 10, 20 e 40: cerca de 3 vezes mais por dobra do lado. O ciclo é pior em todas as escalas (24,3 e 98,9 nas duas primeiras).
-- O ciclo em 40x40 não terminou: parou no teto de 320 000 passos com 481,5 pontos em média. Não dá para dizer quantos passos levaria; só que levaria muito mais que o A\* (199 338).
-- A rede usa o filtro de segurança e a guarda contra laços do código (as mesmas do professor); o que é aprendido é a escolha entre movimentos seguros.
-- A comparação do 40x40 tem 4 partidas.
+- Safe A\* spends 13.3, 39.5 and 124.6 steps per cell on 10, 20 and 40: about 3 times more per doubling of the side. The cycle is worse at every scale (24.3 and 98.9 on the first two).
+- The cycle on 40x40 did not finish: it stopped at the 320,000-step cap with 481.5 points on average. We cannot say how many steps it would take, only that it would take far more than A\* (199,338).
+- The network uses the code's safety filter and loop guard (the same as the teacher's); what is learned is the choice among safe moves.
+- The 40x40 comparison has 4 games.
 
-## Rede salva e modo de assistir
+## Saved network and watch mode
 
-`compare imitation` grava o checkpoint (`imitation.ckpt`) e avalia a cópia recarregada, para provar que o arquivo guarda a rede treinada. A rede de `models/imitation.ckpt` enche o tabuleiro (397) nas sementes 1 e 3, em cerca de 36 mil passos. Para assistir:
+`compare imitation` writes the checkpoint (`imitation.ckpt`) and evaluates the reloaded copy, to prove the file holds the trained network. The network in `models/imitation.ckpt` fills the board (397) on seeds 1 and 3, in about 36 thousand steps. To watch:
 
 ```bash
-./build/watch models/imitation.ckpt [semente=1] [ms por quadro=50] [desenhar a cada N passos=1]
-./build/watch models/imitation_astar.ckpt 1 120 1 astar   # a rede que imita o A* seguro
+./build/bin/watch models/imitation.ckpt [seed=1] [ms per frame=50] [draw every N steps=1]
+./build/bin/watch models/imitation_astar.ckpt 1 120 1 astar   # the network imitating safe A*
 ```
 
-Partidas completas passam de 35 mil passos; o padrão (50 ms, todos os passos) é para ver o começo; use `120 1` para mais devagar e, para chegar ao fim, algo como `20 50` (20 ms, um quadro a cada 50 passos). Ctrl+C interrompe e devolve o cursor.
+Full games exceed 35 thousand steps; the default (50 ms, every step) is for watching the start; use `120 1` for slower and, to reach the end, something like `20 50` (20 ms, one frame every 50 steps). Ctrl+C stops and restores the cursor.
 
-## Próximos passos
+## Final runs
 
-1. Aprender a guarda contra laços e o teste de segurança, que hoje estão no código (ver seção acima), ou medir quanto a rede perde sem eles.
-2. Investigar a partida que morreu e, se for erro de generalização, treinar com mais jogos ou com amostragem das partes longas.
-3. Repetir o treino com várias sementes, já que o resultado da rede do A* vem de um treino e 12 partidas.
-4. Se invariância importar, tentar imitar o especialista com features egocêntricas e verificar quanto se perde dos 393,8 a 397.
+Logs of the runs made with the reorganized code are in [results/](results/); see [results/README.md](results/README.md) for the summary table.
+
+## Next steps
+
+1. Learn the loop guard and the safety test, which today live in the code (see the section above), or measure how much the network loses without them.
+2. Investigate the game that died and, if it is a generalization error, train with more games or by sampling the long stretches.
+3. Repeat training with several seeds, since the A\* network's result comes from one training run and 12 games.
+4. If invariance matters, try imitating the expert with egocentric features and check how much is lost from the 393.8 to 397.
