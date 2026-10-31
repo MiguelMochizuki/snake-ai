@@ -10,9 +10,25 @@
 #include <vector>
 
 /**
- * Relative actions: the net never reverses, it only goes straight or turns
+ * Relative actions: the agent never reverses, it only goes straight or turns
  */
 enum Action { STRAIGHT = 0, TURN_RIGHT = 1, TURN_LEFT = 2 };
+
+/**
+ * What one move would do, in terms of the board and the Hamiltonian cycle
+ *
+ * Attributes:
+ * bool blocked: Wall or body
+ * bool allowed: Not blocked and either the next cycle cell or a shortcut that stays before the tail, which keeps the body in cycle order
+ * int ahead: Cycle steps from the head to the target cell
+ * int remaining: Cycle steps from the target cell to the food
+ */
+struct MoveInfo {
+	bool blocked;
+	bool allowed;
+	int ahead;
+	int remaining;
+};
 
 /**
  * One game on a 20x20 board
@@ -20,18 +36,22 @@ enum Action { STRAIGHT = 0, TURN_RIGHT = 1, TURN_LEFT = 2 };
  * Attributes:
  * GameState state_: The game logic
  * int dir_: Current heading (0=UP, 1=DOWN, 2=LEFT, 3=RIGHT, as GameState::moveSnake)
- * bool dead_: true after a collision or starvation
+ * bool dead_: true after a collision, starvation or a full board
+ * bool won_: true if the last food filled the board
  * int sinceFood_: Steps since the last food
  */
 class SnakeEnv {
 	GameState state_;
 	int dir_ = 3;
 	bool dead_ = false;
+	bool won_ = false;
 	int sinceFood_ = 0;
 
 public:
-	static const int FEATURES = 11;
+	static const int FEATURES = 13;
 	static const int ACTIONS = 3;
+	static const int DX[4];
+	static const int DY[4];
 
 	/**
 	 * Parameters:
@@ -40,7 +60,7 @@ public:
 	explicit SnakeEnv(unsigned seed);
 
 	/**
-	 * Returns FEATURES floats: danger straight/right/left, heading one-hot (up, down, left, right), food up/down/left/right of the head
+	 * Returns FEATURES floats: per action (straight, right, left) blocked, allowed and remaining cycle distance to the food over CYCLE_LEN; then the heading one-hot (up, down, left, right)
 	 */
 	std::vector<float> features() const;
 
@@ -56,12 +76,24 @@ public:
 	bool blocked(int x, int y) const;
 
 	/**
+	 * Describes a move
+	 *
+	 * Parameters:
+	 * int action: STRAIGHT, TURN_RIGHT or TURN_LEFT
+	 *
+	 * Returns MoveInfo: The move's board and cycle facts
+	 */
+	MoveInfo info(int action) const;
+
+	/**
 	 * Moves one step
 	 *
 	 * Parameters:
 	 * int action: STRAIGHT, TURN_RIGHT or TURN_LEFT
+	 *
+	 * Returns bool: true if the move ate food
 	 */
-	void step(int action);
+	bool step(int action);
 
 	/**
 	 * Turns a heading by an action
@@ -74,11 +106,8 @@ public:
 	 */
 	static int turn(int dir, int action);
 
-	static const int DX[4];
-	static const int DY[4];
-
 	bool dead() const { return dead_; }
-	int score() const { return state_.getScore(); }
+	int score() const { return state_.getScore() + (won_ ? 1 : 0); }
 	int dir() const { return dir_; }
 	const GameState& state() const { return state_; }
 };
