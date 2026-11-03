@@ -53,7 +53,7 @@ make watch-gui # the same in a window (builds with SDL3 into build-sdl/)
 
 Without `make`: `cmake -S . -B build && cmake --build build -j` (add `-DSNAKE_AI_BUILD_GUI=ON` for the window). The options `SNAKE_AI_BUILD_APPS`, `SNAKE_AI_BUILD_EXPERIMENTS` and `SNAKE_AI_BUILD_TESTS` switch each part on or off. `-DSNAKE_AI_BUILD_GUI=ON` (default off) lets `watch` draw through snake-game's SDL3 renderer; it fetches SDL3 when configuring and needs the same system packages as snake-game's graphical version (see its README for the Linux list).
 
-Both dependencies are git submodules in `deps/`: `snake-game` at v2.1.0 (headers under `snake_game/`) and `nn-cpp` at a pinned commit.
+Both dependencies are git submodules in `deps/`: `snake-game` at v2.1.1 (headers under `snake_game/`) and `nn-cpp` at a pinned commit.
 
 ## Usage
 
