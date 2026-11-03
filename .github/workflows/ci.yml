@@ -18,3 +18,23 @@ jobs:
           cmake --build build -j
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+  build-and-test-gui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install SDL3 build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwayland-dev libxkbcommon-dev wayland-protocols libdecor-0-dev libegl-dev libdrm-dev libgbm-dev \
+            libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev libxfixes-dev libxkbcommon-x11-dev \
+            libasound2-dev libpulse-dev libudev-dev
+      - name: Build with the GUI
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSNAKE_AI_BUILD_GUI=ON -DSNAKE_AI_BUILD_EXPERIMENTS=OFF
+          cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
