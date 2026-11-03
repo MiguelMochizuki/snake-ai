@@ -15,7 +15,7 @@
 /**
  * Relative actions: the agent never reverses, it only goes straight or turns
  */
-enum Action { STRAIGHT = 0, TURN_RIGHT = 1, TURN_LEFT = 2 };
+enum RelativeAction { STRAIGHT = 0, TURN_RIGHT = 1, TURN_LEFT = 2 };  // not "Action": snake-game has an enum class of that name
 
 /**
  * What one move would do, in terms of the board and the Hamiltonian cycle

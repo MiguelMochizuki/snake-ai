@@ -3,3 +3,8 @@ foreach(app compare evolve imitate_astar selector watch)
 	target_link_libraries(${app} PRIVATE snake_ai_core)
 	snake_ai_set_warnings(${app})
 endforeach()
+
+if(SNAKE_AI_BUILD_GUI)
+	target_link_libraries(watch PRIVATE snake_gui_core)
+	target_compile_definitions(watch PRIVATE SNAKE_AI_HAVE_GUI)
+endif()

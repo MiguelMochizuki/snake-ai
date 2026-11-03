@@ -4,7 +4,7 @@ Agents that play [snake-game](https://github.com/MiguelMochizuki/snake-game), tr
 
 ![The network imitating safe A* fills the 20x20 board](docs/astar_network.gif)
 
-The network playing a full 20x20 game (seed 1, one frame every 60 steps, 14,908 steps, 397 points).
+The network playing a full 20x20 game (seed 1, one frame every 125 steps, 14,908 steps, 397 points), drawn by snake-game's own SDL renderer.
 
 ## Overview
 
@@ -47,9 +47,9 @@ cd snake-ai
 make test      # builds everything and runs the tests; binaries land in build/bin
 ```
 
-Without `make`: `cmake -S . -B build && cmake --build build -j`. The options `SNAKE_AI_BUILD_APPS`, `SNAKE_AI_BUILD_EXPERIMENTS` and `SNAKE_AI_BUILD_TESTS` switch each part on or off.
+Without `make`: `cmake -S . -B build && cmake --build build -j`. The options `SNAKE_AI_BUILD_APPS`, `SNAKE_AI_BUILD_EXPERIMENTS` and `SNAKE_AI_BUILD_TESTS` switch each part on or off. `-DSNAKE_AI_BUILD_GUI=ON` (default off) lets `watch` draw through snake-game's SDL3 renderer; it fetches SDL3 when configuring and needs the same system packages as snake-game's graphical version (see its README for the Linux list).
 
-Both dependencies are git submodules in `deps/`: `snake-game` at v2.0.0 plus the module reorganization (headers under `snake_game/`) and `nn-cpp` at a pinned commit.
+Both dependencies are git submodules in `deps/`: `snake-game` at v2.1.0 (headers under `snake_game/`) and `nn-cpp` at a pinned commit.
 
 ## Usage
 
@@ -63,12 +63,14 @@ Both dependencies are git submodules in `deps/`: `snake-game` at v2.0.0 plus the
 ./build/bin/imitate_astar            # trains the safe-A* imitation network, writes imitation_astar.ckpt
 ./build/bin/selector                 # learned mode selector
 ./build/bin/watch models/imitation_astar.ckpt 1 120 1 astar   # watch a network play in the terminal
+./build/bin/watch models/imitation_astar.ckpt 1 50 1 astar --gui   # same, in a window (GUI build)
+./build/bin/watch models/imitation_astar.ckpt 1 50 125 astar --frames frames   # off-screen PPM frames, no display needed (GUI build)
 ./build/bin/safe_modes [games]       # A*, shortcut and cycle modes with the safety guarantee
 ./build/bin/scale_test               # 10x10, 20x20 and 40x40 boards with the 20x20-trained network
 ./build/bin/bfs_safe [games]         # shortest-path experiment
 ```
 
-`GENOME` is the weights file written by `evolve`; `steps` is the per-game step cap during evolution (default 4000); `nocoil` zeroes the winding-number term for comparison. `watch` takes `checkpoint [seed] [ms per frame] [draw every N steps] [astar]`. To see output while training, run under `stdbuf -oL`, since stdout is buffered when redirected.
+`GENOME` is the weights file written by `evolve`; `steps` is the per-game step cap during evolution (default 4000); `nocoil` zeroes the winding-number term for comparison. `watch` takes `checkpoint [seed] [ms per frame] [draw every N steps] [astar]`, plus `--gui` or `--frames DIR` in the GUI build. The GIF above was made from such frames: `ffmpeg -framerate 25 -i frames/frame-%05d.ppm -vf "crop=640:662:0:0,scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=24:stats_mode=diff[p];[b][p]paletteuse=dither=none" -loop 0 docs/astar_network.gif`. To see output while training, run under `stdbuf -oL`, since stdout is buffered when redirected.
 
 ## Key Results
 
