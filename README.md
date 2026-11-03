@@ -45,9 +45,13 @@ Requirements: a C++17 compiler and CMake 3.16+.
 git clone --recursive git@github.com:MiguelMochizuki/snake-ai.git
 cd snake-ai
 make test      # builds everything and runs the tests; binaries land in build/bin
+make watch     # watch the A* network play in the terminal
+make watch-gui # the same in a window (builds with SDL3 into build-sdl/)
 ```
 
-Without `make`: `cmake -S . -B build && cmake --build build -j`. The options `SNAKE_AI_BUILD_APPS`, `SNAKE_AI_BUILD_EXPERIMENTS` and `SNAKE_AI_BUILD_TESTS` switch each part on or off. `-DSNAKE_AI_BUILD_GUI=ON` (default off) lets `watch` draw through snake-game's SDL3 renderer; it fetches SDL3 when configuring and needs the same system packages as snake-game's graphical version (see its README for the Linux list).
+`make help` lists everything: `make gui` and `make test-gui` build and test the variant with the window, `make gif` remakes the GIF above, and the submodules are fetched automatically. Each variant has its own build directory, so switching never forces a rebuild.
+
+Without `make`: `cmake -S . -B build && cmake --build build -j` (add `-DSNAKE_AI_BUILD_GUI=ON` for the window). The options `SNAKE_AI_BUILD_APPS`, `SNAKE_AI_BUILD_EXPERIMENTS` and `SNAKE_AI_BUILD_TESTS` switch each part on or off. `-DSNAKE_AI_BUILD_GUI=ON` (default off) lets `watch` draw through snake-game's SDL3 renderer; it fetches SDL3 when configuring and needs the same system packages as snake-game's graphical version (see its README for the Linux list).
 
 Both dependencies are git submodules in `deps/`: `snake-game` at v2.1.0 (headers under `snake_game/`) and `nn-cpp` at a pinned commit.
 
