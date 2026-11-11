@@ -1,0 +1,51 @@
+/**
+ * test_paired.cpp
+ * Author: Miguel Mochizuki Silva
+ * Description: Tests for the paired evaluation harness
+ */
+
+#include "doctest/doctest.h"
+#include "snake_ai/eval/paired.hpp"
+#include "snake_ai/planning/modes.hpp"
+
+TEST_CASE("bootstrapRelDiff on a constant 10 percent drop") {
+	std::vector<double> base(30, 100.0), test(30, 90.0);
+	Interval iv = bootstrapRelDiff(base, test, 500, 1);
+	CHECK(iv.mean == doctest::Approx(-0.10));
+	CHECK(iv.lo == doctest::Approx(-0.10));
+	CHECK(iv.hi == doctest::Approx(-0.10));
+	CHECK(passesGate(iv));
+}
+
+TEST_CASE("bootstrapRelDiff on identical data does not pass the gate") {
+	std::vector<double> base(30, 100.0);
+	Interval iv = bootstrapRelDiff(base, base, 500, 1);
+	CHECK(iv.mean == doctest::Approx(0.0));
+	CHECK_FALSE(passesGate(iv));
+}
+
+TEST_CASE("a noisy 5 percent drop whose interval straddles zero fails the gate") {
+	std::vector<double> base, test;
+	for (int i = 0; i < 30; ++i) {
+		double b = i % 2 ? 150.0 : 50.0;
+		base.push_back(b);
+		test.push_back(b + (i % 2 ? 20.0 : -30.0));  // paired differences of -30 and +20: mean -5, spread large
+	}
+	Interval iv = bootstrapRelDiff(base, test, 2000, 1);
+	CHECK(iv.mean == doctest::Approx(-0.05));
+	CHECK(iv.hi > 0.0);
+	CHECK_FALSE(passesGate(iv));
+}
+
+TEST_CASE("playGames does not depend on the thread count") {
+	auto teacher = [](SnakeEnv& env, SafeAgent& agent) { return teacherAction(snapshotOf(env), agent); };
+	std::vector<unsigned> seeds{1, 2, 3, 4, 5, 6};
+	std::vector<GameResult> one = playGames(10, seeds, teacher, 1), four = playGames(10, seeds, teacher, 4);
+	REQUIRE(one.size() == seeds.size());
+	for (size_t i = 0; i < seeds.size(); ++i) {
+		CHECK(one[i].steps == four[i].steps);
+		CHECK(one[i].full);
+		CHECK_FALSE(one[i].died);
+		CHECK(one[i].score == 97);
+	}
+}
