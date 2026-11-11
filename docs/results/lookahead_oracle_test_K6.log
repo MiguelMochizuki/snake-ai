@@ -1,0 +1,7 @@
+# commit 2a26ad2, 2026-11-11T16:18:08-03:00
+# cmd: build/bin/lookahead_oracle test 6 12
+lookahead_oracle test: foods K=6, threads 12, 30 seeds, 20x20 (the oracle sees the true future foods: upper bound only)
+safe A* (teacher)          mean steps   16016.2  deaths 0/30  not full 0/30
+leaked lookahead           mean steps   10291.4  deaths 0/30  not full 0/30
+relative change in steps -35.74%  95% CI [-37.19%, -34.12%]
+GATE A: PASS
