@@ -7,6 +7,7 @@
 #define MODES_HPP
 
 #include "snake_ai/env/snake_env.hpp"
+#include "snake_ai/planning/snapshot.hpp"
 #include "snake_ai/planning/tiles.hpp"
 
 /**
@@ -43,6 +44,9 @@ public:
 	 */
 	int act(const SnakeEnv& env, Mode mode);
 
+	/** Same as act(env, mode) but decides from a Snapshot, so rollouts need no SnakeEnv */
+	int act(const Snapshot& s, Mode mode);
+
 	/**
 	 * State summary for choosing a mode, all fractions of the board or of a bound so it does not depend on scale
 	 *
@@ -53,6 +57,9 @@ public:
 	 * cycle distance to the food, cycle distance to the tail, steps since food, food before the tail along the cycle, safe moves out of three
 	 */
 	std::vector<float> features(const SnakeEnv& env);
+
+	/** Same as features(env) but from a Snapshot */
+	std::vector<float> features(const Snapshot& s);
 
 	static const int FEATURES = 8;
 	static const int ACTION_FEATURES = 4 * SnakeEnv::ACTIONS;
@@ -68,6 +75,35 @@ public:
 	 * Returns std::vector<float>: ACTION_FEATURES values
 	 */
 	std::vector<float> actionFeatures(const SnakeEnv& env);
+
+	/** Same as actionFeatures(env) but from a Snapshot */
+	std::vector<float> actionFeatures(const Snapshot& s);
+
+	static const int EXTRA_PER_ACTION = 3;
+	static const int EXT_FEATURES = ACTION_FEATURES + 3 * EXTRA_PER_ACTION;
+
+	/**
+	 * actionFeatures followed by what a lookahead exploits, all fractions of the board so they do not depend on scale. For each of
+	 * straight, right and left: (a) cells reachable from the target cell over free cells after the move, (b) cycle distance from the target
+	 * cell to the tail, (c) cycle distance from the target cell to the food. A blocked move gets 1, 0, 1 (its blocked flag is in the prefix)
+	 *
+	 * Parameters:
+	 * const Snapshot& s: Current game
+	 *
+	 * Returns std::vector<float>: EXT_FEATURES values, the first ACTION_FEATURES equal to actionFeatures(s)
+	 */
+	std::vector<float> extendedFeatures(const Snapshot& s);
 };
+
+/**
+ * The baseline player: A*, falling back to the cycle after the loop guard
+ *
+ * Parameters:
+ * const Snapshot& s: Current game
+ * SafeAgent& agent: The agent whose spanning tree is reused between calls
+ *
+ * Returns int: STRAIGHT, TURN_RIGHT or TURN_LEFT
+ */
+int teacherAction(const Snapshot& s, SafeAgent& agent);
 
 #endif

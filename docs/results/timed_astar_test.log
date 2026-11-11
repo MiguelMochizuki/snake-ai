@@ -1,0 +1,7 @@
+# commit 2a26ad2, 2026-11-11T16:18:06-03:00
+# cmd: build/bin/timed_astar test 12
+timed_astar test: threads 12, 30 seeds, 20x20
+safe A* (teacher)          mean steps   16016.2  deaths 0/30  not full 0/30
+timed A*                   mean steps   16451.1  deaths 0/30  not full 0/30
+relative change in steps +2.71%  95% CI [+0.05%, +5.43%]
+GATE (3%): FAIL

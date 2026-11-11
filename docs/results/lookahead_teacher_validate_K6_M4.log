@@ -1,0 +1,7 @@
+# commit 2a26ad2, 2026-11-11T14:53:50-03:00
+# cmd: build/bin/lookahead_teacher validate 6 4 12
+lookahead_teacher validate: foods K=6, samples M=4, threads 12, 20 seeds, 20x20 (futures are sampled; the real ones are never seen)
+safe A* (teacher)          mean steps   15565.1  deaths 0/20  not full 0/20
+honest lookahead           mean steps   14016.7  deaths 0/20  not full 0/20
+relative change in steps -9.95%  95% CI [-12.96%, -6.96%]
+GATE B: PASS
