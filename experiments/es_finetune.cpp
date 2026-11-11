@@ -23,11 +23,13 @@ namespace {
 const int BOARD = 20;               // training board side
 const int FOODS = 20;               // foods the network plays in one training episode
 const int BATCH = 16;               // episodes per generation, the same for every candidate
-const unsigned TRAIN_BASE = 50000;  // training seeds; validation uses 20000+g and the test 100000+g, so the three never meet
+const unsigned TRAIN_BASE = 50000;  // training seeds; validation uses 20000+g and the test 100000+g, so the three never meet (MAX_GENERATIONS keeps it so)
 const int VALIDATE_EVERY = 10;      // generations between validations
 const int PATIENCE = 3;             // validations without improvement before the run stops
 const char* const START = "models/imitation_astar.ckpt";
-const char* const OUT = "models/es_finetuned.ckpt";
+const char* const OUT = "models/es_finetuned.ckpt";         // the result, written only by a run with --final
+const char* const TRIAL = "models/es_trial.ckpt";           // where every other training run saves, so a trial cannot replace the result
+const int MAX_GENERATIONS = 3000;                           // 50000 + 16 * 3000 stays below the test seeds at 100000
 
 /**
  * Runs fn(0) .. fn(n-1) on worker threads dealt round-robin; each index is handled by exactly one worker
@@ -272,7 +274,8 @@ bool parsePositiveFloat(const char* text, float& out) {
 /**
  * Usage: es_finetune [generations=200] [threads=12] [--sigma=X] [--lr=X] [--final]   trains and saves models/es_finetuned.ckpt;
  *                    the test games run only with --final, so tuning on validation never touches them
- *        es_finetune --eval [threads=12]                                              reloads the checkpoint and runs the final test only
+ *                    only a run with --final saves models/es_finetuned.ckpt; any other run saves models/es_trial.ckpt
+ *        es_finetune --eval [threads=12]                                              reloads models/es_finetuned.ckpt and runs the final test only
  */
 int main(int argc, char** argv) {
 	std::setvbuf(stdout, nullptr, _IOLBF, 0);
@@ -300,8 +303,9 @@ int main(int argc, char** argv) {
 			ok = false;
 		}
 	}
+	if (generations > MAX_GENERATIONS) ok = false;
 	if (!ok) {
-		std::fprintf(stderr, "usage: %s [generations=200] [threads=12] [--sigma=X] [--lr=X] [--final] | --eval [threads=12]  (integers >= 1, numbers > 0, nothing else)\n", argv[0]);
+		std::fprintf(stderr, "usage: %s [generations=200] [threads=12] [--sigma=X] [--lr=X] [--final] | --eval [threads=12]  (integers >= 1, generations <= 3000, numbers > 0, nothing else)\n", argv[0]);
 		return 2;
 	}
 
@@ -342,8 +346,9 @@ int main(int argc, char** argv) {
 	}
 	nn::Sequential out = makeExtendedNet();
 	setWeights(out, best);
-	nn::save_checkpoint(OUT, out, nullptr, generations);
-	std::printf("best validation %.1f steps, saved %s\n", bestVal, OUT);
+	const char* path = final ? OUT : TRIAL;
+	nn::save_checkpoint(path, out, nullptr, generations);
+	std::printf("best validation %.1f steps, saved %s\n", bestVal, path);
 	if (final) finalTest(best, threads);
 	return 0;
 }
