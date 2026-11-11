@@ -59,6 +59,7 @@ add_library(snake_ai_core STATIC
 	src/planning/tiles.cpp
 	src/planning/modes.cpp
 	src/planning/snapshot.cpp
+	src/planning/sim.cpp
 	src/teachers/expert.cpp
 	src/teachers/heuristic.cpp
 )
