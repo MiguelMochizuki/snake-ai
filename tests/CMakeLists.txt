@@ -7,6 +7,7 @@ add_executable(snake_ai_tests
 	test_paired.cpp
 	test_lookahead.cpp
 	test_features.cpp
+	test_es.cpp
 )
 target_link_libraries(snake_ai_tests PRIVATE snake_ai_core doctest::doctest)
 snake_ai_set_warnings(snake_ai_tests)
