@@ -22,7 +22,8 @@ namespace {
  * std::vector<int> order: Steps from the head along the cycle, per cell (y * side + x)
  */
 struct View {
-	const SnakeEnv& env;
+	const Snapshot& snap;
+	std::vector<char> occ;
 	int side;
 	int cells;
 	std::vector<Cell> body;
@@ -31,11 +32,13 @@ struct View {
 
 	/**
 	 * Parameters:
-	 * const SnakeEnv& env: Current game
+	 * const Snapshot& s: Current game, which must outlive the View
 	 * Tree& tree: The agent's spanning tree; recomputed here if it no longer fits the body
 	 * bool& haveTree: Whether tree holds a valid tree
 	 */
-	View(const SnakeEnv& e, Tree& tree, bool& haveTree) : env(e), side(e.size()), cells(side * side), body(bodyCells(e)), head(body[0]) {
+	View(const Snapshot& s, Tree& tree, bool& haveTree) : snap(s), occ(s.size * s.size, 0), side(s.size), cells(side * side), body(s.body), head(body[0]) {
+		// Occupancy grid so blocked() is constant time inside the BFS; the tail is left out as the game does
+		for (size_t i = 0; i + 1 < body.size(); ++i) occ[body[i].second * side + body[i].first] = 1;
 		if (!haveTree || !consistent(tree, side, body)) {
 			haveTree = treeFor(body, side, tree);
 		}
@@ -44,12 +47,21 @@ struct View {
 
 	/**
 	 * Parameters:
+	 * int x: Column
+	 * int y: Row
+	 *
+	 * Returns bool: true if moving there is fatal (same rule as Snapshot::blocked)
+	 */
+	bool blocked(int x, int y) const { return x < 0 || x >= side || y < 0 || y >= side || occ[y * side + x]; }
+
+	/**
+	 * Parameters:
 	 * int action: STRAIGHT, TURN_RIGHT or TURN_LEFT
 	 *
 	 * Returns Cell: The cell the action leads to (may lie off the board)
 	 */
 	Cell target(int action) const {
-		int d = SnakeEnv::turn(env.dir(), action);
+		int d = SnakeEnv::turn(snap.dir, action);
 		return {head.first + SnakeEnv::DX[d], head.second + SnakeEnv::DY[d]};
 	}
 
@@ -79,9 +91,9 @@ struct View {
 	 * Returns bool: true if the body after that move still lies on a Hamiltonian cycle; the tail stays only when the move eats
 	 */
 	bool safe(Cell c) const {
-		const Food& food = env.state().getFood();
+		const Cell food = snap.food;
 		std::vector<Cell> next{c};
-		next.insert(next.end(), body.begin(), body.end() - (c.first == food.getX() && c.second == food.getY() ? 0 : 1));
+		next.insert(next.end(), body.begin(), body.end() - (c.first == food.first && c.second == food.second ? 0 : 1));
 		Tree tree;
 		return treeFor(next, side, tree);
 	}
@@ -90,17 +102,17 @@ struct View {
 	 * Returns std::vector<int>: Shortest path length to the food over free cells, per cell (-1 if unreachable)
 	 */
 	std::vector<int> distToFood() const {
-		const Food& food = env.state().getFood();
+		const Cell food = snap.food;
 		std::vector<int> dist(cells, -1);
 		std::queue<Cell> q;
-		dist[food.getY() * side + food.getX()] = 0;
-		q.push({food.getX(), food.getY()});
+		dist[food.second * side + food.first] = 0;
+		q.push({food.first, food.second});
 		while (!q.empty()) {
 			Cell c = q.front();
 			q.pop();
 			for (int d = 0; d < 4; ++d) {
 				int nx = c.first + SnakeEnv::DX[d], ny = c.second + SnakeEnv::DY[d];
-				if (env.blocked(nx, ny) || dist[ny * side + nx] >= 0) continue;
+				if (blocked(nx, ny) || dist[ny * side + nx] >= 0) continue;
 				dist[ny * side + nx] = dist[c.second * side + c.first] + 1;
 				q.push({nx, ny});
 			}
@@ -119,20 +131,20 @@ std::vector<Cell> bodyCells(const SnakeEnv& env) {
 	return body;
 }
 
-int SafeAgent::act(const SnakeEnv& env, Mode mode) {
-	const View v(env, tree_, haveTree_);
+int SafeAgent::act(const Snapshot& s, Mode mode) {
+	const View v(s, tree_, haveTree_);
 	if (mode == CYCLE) {
 		return v.cycleStep();
 	}
 
 	// ASTAR and SHORTCUT: rank the moves that keep the body on a Hamiltonian cycle
 	const std::vector<int> dist = v.distToFood();
-	const Food& food = env.state().getFood();
-	const int foodPos = v.cyclePos({food.getX(), food.getY()});
+	const Cell food = s.food;
+	const int foodPos = v.cyclePos({food.first, food.second});
 	int best = -1, bestCost = 1 << 30;
 	for (int a = 0; a < SnakeEnv::ACTIONS; ++a) {
 		Cell c = v.target(a);
-		if (env.blocked(c.first, c.second)) continue;
+		if (v.blocked(c.first, c.second)) continue;
 		// A* ranks by steps over free cells; SHORTCUT by steps along the current cycle, the classic jump-ahead rule
 		int cost = mode == ASTAR ? dist[c.second * v.side + c.first]
 			: ((foodPos - v.cyclePos(c)) % v.cells + v.cells) % v.cells;
@@ -143,37 +155,37 @@ int SafeAgent::act(const SnakeEnv& env, Mode mode) {
 	return best >= 0 ? best : v.cycleStep();
 }
 
-std::vector<float> SafeAgent::features(const SnakeEnv& env) {
-	const View v(env, tree_, haveTree_);
+std::vector<float> SafeAgent::features(const Snapshot& s) {
+	const View v(s, tree_, haveTree_);
 	const Cell tail = v.body.back();
-	const Food& food = env.state().getFood();
+	const Cell food = s.food;
 	int safeMoves = 0;
 	for (int a = 0; a < SnakeEnv::ACTIONS; ++a) {
 		Cell c = v.target(a);
-		if (!env.blocked(c.first, c.second)) safeMoves += v.safe(c);
+		if (!v.blocked(c.first, c.second)) safeMoves += v.safe(c);
 	}
-	const int foodPos = v.cyclePos({food.getX(), food.getY()}), tailPos = v.cyclePos(tail);
+	const int foodPos = v.cyclePos({food.first, food.second}), tailPos = v.cyclePos(tail);
 	const int path = v.distToFood()[v.head.second * v.side + v.head.first];
 	const float cells = static_cast<float>(v.cells);
 	return {static_cast<float>(v.body.size()) / cells,
-		static_cast<float>(std::abs(v.head.first - food.getX()) + std::abs(v.head.second - food.getY())) / static_cast<float>(2 * (v.side - 1)),
+		static_cast<float>(std::abs(v.head.first - food.first) + std::abs(v.head.second - food.second)) / static_cast<float>(2 * (v.side - 1)),
 		path < 0 ? 1.0f : static_cast<float>(path) / cells,
 		static_cast<float>(foodPos) / cells,
 		static_cast<float>(tailPos) / cells,
-		std::min(1.0f, static_cast<float>(env.sinceFood()) / static_cast<float>(env.loopGuard())),
+		std::min(1.0f, static_cast<float>(s.sinceFood) / static_cast<float>(s.loopGuard())),
 		foodPos < tailPos ? 1.0f : 0.0f,
 		static_cast<float>(safeMoves) / 3.0f};
 }
 
-std::vector<float> SafeAgent::actionFeatures(const SnakeEnv& env) {
-	const View v(env, tree_, haveTree_);
+std::vector<float> SafeAgent::actionFeatures(const Snapshot& s) {
+	const View v(s, tree_, haveTree_);
 	const std::vector<int> dist = v.distToFood();
 	struct Option { bool blocked, safe, cycleStep; int path; };
 	std::vector<Option> options;
 	int bestSafe = 1 << 30;
 	for (int a = 0; a < SnakeEnv::ACTIONS; ++a) {
 		Cell c = v.target(a);
-		if (env.blocked(c.first, c.second)) {
+		if (v.blocked(c.first, c.second)) {
 			options.push_back({true, false, false, -1});
 			continue;
 		}
@@ -188,4 +200,20 @@ std::vector<float> SafeAgent::actionFeatures(const SnakeEnv& env) {
 		f.insert(f.end(), {o.blocked ? 1.0f : 0.0f, o.safe ? 1.0f : 0.0f, std::max(regret, 0.0f), o.cycleStep ? 1.0f : 0.0f});
 	}
 	return f;
+}
+
+int SafeAgent::act(const SnakeEnv& env, Mode mode) {
+	return act(snapshotOf(env), mode);
+}
+
+std::vector<float> SafeAgent::features(const SnakeEnv& env) {
+	return features(snapshotOf(env));
+}
+
+std::vector<float> SafeAgent::actionFeatures(const SnakeEnv& env) {
+	return actionFeatures(snapshotOf(env));
+}
+
+int teacherAction(const Snapshot& s, SafeAgent& agent) {
+	return agent.act(s, s.sinceFood > s.loopGuard() ? CYCLE : ASTAR);
 }
