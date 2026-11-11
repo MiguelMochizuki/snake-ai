@@ -4,6 +4,8 @@
 
 Update: the tile scheme (section below) gave a player that is faster than the cycle and just as safe: the guaranteed A\* scores 397 points in about 15,800 steps, against 39,600 for the cycle. A network trained to imitate that safe A\* (section "Imitating the safe A\*") reproduces the teacher: 397 points, 15,792 steps, 0 deaths in 12 games. The chosen imitation is now that one; the cycle network stays as the first version.
 
+Update 2: the imitation ceiling can be broken. A lookahead that picks among the safe moves by the steps to eat the next food saves 27% of the steps without seeing the future (test seeds), and a network fine-tuned with evolution strategies from the imitation checkpoint saves 11.3% on 20x20 (95% CI [-13.5%, -8.9%], 0 deaths); see "Beating the safe A\*".
+
 We compared four players on `snake-game` v2.0.0, 20x20 board. Imitation was chosen: a 13→32→32→3 network trained to copy the Hamiltonian cycle player reaches 393.8 points on average out of a maximum of 397 (full board). The two approaches that learn without a teacher fell well behind.
 
 ## How we measured
@@ -164,6 +166,52 @@ Observations:
 - The network uses the code's safety filter and loop guard (the same as the teacher's); what is learned is the choice among safe moves.
 - The 40x40 comparison has 4 games.
 
+## Beating the safe A\*
+
+Question: can a player beat the safe A\* in steps to fill the board while keeping zero deaths, and can a small network learn to? The network that imitates the A\* can at best tie it, so any room above the teacher has to come from somewhere else. Design and decisions: `docs/superpowers/specs/2026-11-11-beat-the-teacher-design.md` (kept outside the repository). A negative result was a valid outcome.
+
+**The leak problem.** `GameState` keeps its food generator private, and copying a `SnakeEnv` copies it, so a rollout on a copy places the food exactly where the real game will. A lookahead built that way knows the future and proves nothing about an honest player. The answer has two parts. `SafeAgent` now decides from a plain `Snapshot` (size, heading, body, food, steps since food), which carries no generator, and `Sim` (`planning/sim.cpp`) replays the game rules with a generator of its own, proved equal to `SnakeEnv::step` by tests. The leaked lookahead is kept only as an upper bound ("oracle"); the honest lookahead (`lookaheadHonest`) draws the unknown foods from its own generator. One equality guards the split: with K=1 the honest lookahead samples nothing and must equal the oracle exactly, and it does (11,342.5 steps on the validation seeds).
+
+**The lookahead.** Among the moves flagged safe, each one is scored by the steps a safe A\* then needs to eat the next K foods (capped at the starvation limit); the lowest wins, ties go to the A\*'s own choice. K is the horizon, M the number of sampled futures per move, so the cost grows with K times M.
+
+**Gates.** A player passes if it needs at least 3% fewer steps than the safe A\* with the bootstrap 95% interval entirely below zero, on paired seeds. Validation: 20 games (`20000+g`); test: 30 games (`100000+g`), used once for the Phase 0 configuration and once for the network. 20x20, 0 deaths and every game full in every row.
+
+| Player (validation, A\* = 15,565.1) | Steps | Change |
+|---|---|---|
+| Oracle (leaked future), K=1 / 3 / 6 | 11,342 / 10,499 / 10,152 | -27.1% / -32.6% / -34.8% |
+| Honest, K=1 M=1 | 11,342 | -27.1% |
+| Honest, K=3 M=4 / K=6 M=4 / K=6 M=8 | 13,071 / 14,017 / 13,603 | -16.0% / -9.9% / -12.6% |
+| A\* with a breadth-first search in time | 15,632 | +0.4% |
+
+The honest player gets worse as K grows: the sampled futures add noise, and more samples help only a little. The best honest configuration is K=1, where there is no future to sample. Test seeds, configuration chosen on validation:
+
+| Player (test, A\* = 16,016.2) | Steps | Change | 95% CI | Gate |
+|---|---|---|---|---|
+| Oracle, K=6 | 10,291.4 | -35.74% | [-37.19%, -34.12%] | A passes |
+| Honest lookahead, K=1 | 11,627.1 | -27.40% | [-29.30%, -25.48%] | B passes |
+| A\* with a breadth-first search in time | 16,451.1 | +2.71% | [+0.05%, +5.43%] | fails |
+
+So there is room: even without any knowledge of the future, picking among the safe moves by the cost of the food in sight saves about a quarter of the steps. The extra A\* with a breadth-first search in time was meant to test one explanation of this gain, that it comes from the tail freeing a path. It does not help (it is slightly worse), so that explanation is out. The likely one, not tested here, is the usual one for rollouts: scoring each move by playing the base policy after it is a policy-improvement step over that base policy, and K=1 is that step with the one food that is actually known.
+
+**The learner.** `experiments/es_finetune.cpp` starts from `models/imitation_astar.ckpt` widened to 21 inputs (`widenFromAstar`: old weights copied, the 9 new input columns at zero, so the network is exactly the teacher at the start) and trains with evolution strategies (`policy/es.hpp`: antithetic samples, rank-shaped fitness with tied candidates sharing a rank, 32 candidates). The 9 added features are, per action, the cells reachable after the move, and the cycle distance from the target cell to the tail and to the food, all as fractions of the board. A training episode plays the safe A\* from an empty board to 25%, 50%, 75% or 90% of the board, then hands over to the network for 20 foods and counts steps; each generation uses 16 such episodes, the same for every candidate, and the seeds roll by 16 per generation. The safe-move mask and the loop guard stay on, so deaths cannot happen. Hyperparameters were chosen on validation only, among 6 settings of sigma and learning rate (sigma 0.2, lr 0.2; sigma 0.05 left the landscape flat and 0.4 degraded the network). The best weights, by validation steps, are from generation 59 (validation 14,015.1 against 15,565.1 for the teacher); the run stopped by patience at generation 89 after the validation became unstable. The reloaded checkpoint reproduces the logged test lines exactly (`es_finetune --eval`).
+
+| Board (test seeds) | A\* steps | Network steps | Change | 95% CI | Gate |
+|---|---|---|---|---|---|
+| 20x20, 30 games | 16,016.2 | 14,206.0 | -11.30% | [-13.46%, -8.89%] | passes |
+| 10x10, 12 games | 1,329.8 | 1,327.8 | -0.15% | [-8.89%, +8.40%] | no difference |
+| 40x40, 4 games | 199,338.2 | 179,399.8 | -10.00% | [-14.01%, -6.97%] | passes (4 games) |
+
+All three: 0 deaths, every game fills the board. The network, trained on 20x20 only, keeps the gain on 40x40 and has none on 10x10, where the interval says it is indistinguishable from the teacher. It captures about 40% of the honest ceiling (-27.4%) and about a third of the oracle's (-35.7%).
+
+**What was not tried.** PPO with a KL penalty towards the frozen imitation policy. The plan kept it for the case where ES stalled below the ceiling; ES did pass the gate, so the research question (is there room, and can a learner reach part of it) is answered, but the gap to the honest lookahead is still there and is the natural next experiment.
+
+**Limits.**
+- The 3% threshold is a choice of mine, as are the horizon (K) and the 20-food episodes.
+- One network size (21→32→32→3) and one training run with one seed; ES with this fitness was unstable after generation 70, so the result depends on keeping the best validation checkpoint.
+- Hyperparameters and checkpoint were selected on 20 validation games, so the validation figure (-10.0%) is optimistic; the test figure (-11.30%) is the honest one, and it came out similar.
+- The 10x10 and 40x40 rows have 12 and 4 games; the 40x40 interval is narrow because the four games differ little, not because the sample is large.
+- Why K=1 works is explained only by the rollout argument above, which was not tested.
+
 ## Saved network and watch mode
 
 `compare imitation` writes the checkpoint (`imitation.ckpt`) and evaluates the reloaded copy, to prove the file holds the trained network. The network in `models/imitation.ckpt` fills the board (397) on seeds 1 and 3, in about 36 thousand steps. To watch:
@@ -185,3 +233,4 @@ Logs of the runs made with the reorganized code are in [results/](results/); see
 2. Investigate the game that died and, if it is a generalization error, train with more games or by sampling the long stretches.
 3. Repeat training with several seeds, since the A\* network's result comes from one training run and 12 games.
 4. If invariance matters, try imitating the expert with egocentric features and check how much is lost from the 393.8 to 397.
+5. Close part of the gap between the fine-tuned network (-11.3%) and the honest lookahead (-27.4%): PPO with a KL penalty to the frozen imitation policy, or distilling the K=1 lookahead into the network (its labels need no future).
