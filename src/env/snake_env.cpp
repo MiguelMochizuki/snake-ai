@@ -168,11 +168,14 @@ bool SnakeEnv::step(int action) {
 	int before = state_.getScore();
 	try {
 		state_.moveSnake(dir_);
-	} catch (const std::runtime_error& e) {
+	} catch (const std::runtime_error&) {
 		dead_ = true;
-		// Eating the last free cell fills the board: that is a win, not a crash
-		won_ = std::string(e.what()).find("full") != std::string::npos;
-		return won_;
+		return false;
+	}
+	if (state_.isWon()) {
+		// Eating the last free cell fills the board: that is a win, and snake-game has already counted that food
+		dead_ = true;
+		return true;
 	}
 	const SnakeSegment* head = state_.getSnake().getHead();
 	int cell = head->getY() * state_.getCols() + head->getX();

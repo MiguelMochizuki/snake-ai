@@ -40,14 +40,12 @@ struct MoveInfo {
  * GameState state_: The game logic
  * int dir_: Current heading (0=UP, 1=DOWN, 2=LEFT, 3=RIGHT, as GameState::moveSnake)
  * bool dead_: true after a collision, starvation or a full board
- * bool won_: true if the last food filled the board
  * int sinceFood_: Steps since the last food
  */
 class SnakeEnv {
 	GameState state_;
 	int dir_ = 3;
 	bool dead_ = false;
-	bool won_ = false;
 	int sinceFood_ = 0;
 	std::deque<int> recent_;
 	int n_;
@@ -146,7 +144,7 @@ public:
 
 	bool dead() const { return dead_; }
 	int sinceFood() const { return sinceFood_; }
-	int score() const { return state_.getScore() + (won_ ? 1 : 0); }
+	int score() const { return state_.getScore(); }
 	int dir() const { return dir_; }
 	int headVisits() const { return visits_[state_.getSnake().getHead()->getY() * state_.getCols() + state_.getSnake().getHead()->getX()]; }
 	float lengthFraction() const { return static_cast<float>(state_.getSnake().getLength()) / (n_ * n_); }
