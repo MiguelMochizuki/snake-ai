@@ -28,8 +28,7 @@ const int WIDTH = 640;
 const int HEIGHT = 720;
 
 /**
- * The state to draw: a copy whose best score is the score reached so far in this run. When the last food fills the board the game
- * throws before it counts that food, so the score is topped up to SnakeEnv::score() and the final frame reads the full score
+ * The state to draw: a copy whose best score is the score reached so far in this run
  *
  * Parameters:
  * const SnakeEnv& env: Game being played
@@ -38,7 +37,6 @@ const int HEIGHT = 720;
  */
 inline GameState drawable(const SnakeEnv& env) {
 	GameState state = env.state();
-	while (state.getScore() < env.score()) state.incrementScore();
 	state.setBestScore(state.getScore());
 	return state;
 }

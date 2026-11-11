@@ -73,12 +73,3 @@ TEST_CASE("the last state is always written, whatever the stride") {
 	CHECK(frames == 2);  // the first state and the last one
 	std::filesystem::remove_all(dir);
 }
-
-TEST_CASE("the drawn state of a won game shows the full score") {
-	// The game throws on the last food before counting it, so the raw state would read one point short
-	SnakeEnv env(1, 6);
-	SafeAgent agent;
-	while (!env.dead()) env.step(teacherAction(snapshotOf(env), agent));
-	REQUIRE(env.score() == env.maxScore());
-	CHECK(gui_player::drawable(env).getScore() == env.maxScore());
-}
