@@ -78,4 +78,16 @@ Interval bootstrapRelDiff(const std::vector<double>& base, const std::vector<dou
  */
 bool passesGate(const Interval& iv);
 
+/**
+ * Strict integer parsing for command lines: the whole text must be a decimal integer (no spaces, no trailing characters, no overflow)
+ *
+ * Parameters:
+ * const char* text: The argument (may be null)
+ * int minValue: Smallest accepted value
+ * int& out: Receives the value; left untouched when the text is rejected
+ *
+ * Returns bool: true if text is a valid integer >= minValue
+ */
+bool parseInt(const char* text, int minValue, int& out);
+
 #endif

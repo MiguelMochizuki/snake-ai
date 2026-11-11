@@ -40,21 +40,18 @@ double report(const char* name, const std::vector<GameResult>& r) {
  * validate uses the seeds 20000..20019, test the seeds 100000..100029
  */
 int main(int argc, char** argv) {
-	if (argc < 2 || (std::strcmp(argv[1], "validate") != 0 && std::strcmp(argv[1], "test") != 0)) {
-		std::fprintf(stderr, "usage: %s <validate|test> [foods=3] [threads=12]\n", argv[0]);
+	// Exactly <mode> [foods] [threads], each a whole positive integer; anything else is refused instead of guessed
+	int foods = 3, threads = 12;
+	const bool modeOk = argc >= 2 && (std::strcmp(argv[1], "validate") == 0 || std::strcmp(argv[1], "test") == 0);
+	if (!modeOk || argc > 4 || (argc > 2 && !parseInt(argv[2], 1, foods)) || (argc > 3 && !parseInt(argv[3], 1, threads))) {
+		std::fprintf(stderr, "usage: %s <validate|test> [foods=3] [threads=12]  (integers >= 1, nothing else)\n", argv[0]);
 		return 2;
 	}
 	const bool validate = std::strcmp(argv[1], "validate") == 0;
-	const int foods = argc > 2 ? std::atoi(argv[2]) : 3;
-	const int threads = argc > 3 ? std::atoi(argv[3]) : 12;
-	if (foods < 1 || threads < 1) {
-		std::fprintf(stderr, "foods and threads must be positive integers\n");
-		return 2;
-	}
 	std::vector<unsigned> seeds;
 	for (unsigned g = 0; g < (validate ? 20u : 30u); ++g) seeds.push_back((validate ? 20000u : 100000u) + g);
 
-	std::printf("lookahead_oracle %s: foods K=%d, %zu seeds, 20x20 (the oracle sees the true future foods: upper bound only)\n", argv[1], foods, seeds.size());
+	std::printf("lookahead_oracle %s: foods K=%d, threads %d, %zu seeds, 20x20 (the oracle sees the true future foods: upper bound only)\n", argv[1], foods, threads, seeds.size());
 	std::vector<GameResult> base = playGames(20, seeds, [](SnakeEnv& e, SafeAgent& a) { return teacherAction(snapshotOf(e), a); }, threads);
 	std::vector<GameResult> look = playGames(20, seeds, [foods](SnakeEnv& e, SafeAgent& a) { return lookaheadLeaked(e, a, foods); }, threads);
 	report("safe A* (teacher)", base);

@@ -6,6 +6,9 @@
 #include "snake_ai/eval/paired.hpp"
 
 #include <algorithm>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
 #include <random>
 #include <stdexcept>
 #include <thread>
@@ -62,4 +65,15 @@ Interval bootstrapRelDiff(const std::vector<double>& base, const std::vector<dou
 
 bool passesGate(const Interval& iv) {
 	return iv.mean <= -0.03 && iv.hi < 0.0;
+}
+
+bool parseInt(const char* text, int minValue, int& out) {
+	// strtol skips leading spaces and stops silently at the first bad character, so both are checked here
+	if (!text || !*text || *text == ' ' || *text == '\t') return false;
+	char* end = nullptr;
+	errno = 0;
+	const long v = std::strtol(text, &end, 10);
+	if (errno != 0 || end == text || *end != '\0' || v < minValue || v > INT_MAX) return false;
+	out = static_cast<int>(v);
+	return true;
 }

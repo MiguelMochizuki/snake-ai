@@ -49,3 +49,17 @@ TEST_CASE("playGames does not depend on the thread count") {
 		CHECK(one[i].score == 97);
 	}
 }
+
+TEST_CASE("parseInt accepts only a whole decimal integer at or above the minimum") {
+	int v = -7;
+	CHECK(parseInt("12", 1, v));
+	CHECK(v == 12);
+	CHECK(parseInt("1", 1, v));
+	for (const char* bad : {"", " 3", "3 ", "3 4", "6x", "abc", "-1", "0", "1.5", "99999999999", "+"}) {
+		CAPTURE(bad);
+		v = -7;
+		CHECK_FALSE(parseInt(bad, 1, v));
+		CHECK(v == -7);  // a rejected value never touches the output
+	}
+	CHECK_FALSE(parseInt(nullptr, 1, v));
+}
