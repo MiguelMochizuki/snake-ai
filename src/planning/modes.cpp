@@ -99,6 +99,34 @@ struct View {
 	}
 
 	/**
+	 * Parameters:
+	 * Cell c: A free cell the head would move to
+	 *
+	 * Returns int: Cells reachable from c over free cells once the head is there; the tail is free again unless the move eats
+	 */
+	int reachableAfter(Cell c) const {
+		std::vector<char> seen = occ;
+		const Cell food = snap.food;
+		if (c.first == food.first && c.second == food.second) seen[body.back().second * side + body.back().first] = 1;
+		std::queue<Cell> q;
+		seen[c.second * side + c.first] = 1;
+		q.push(c);
+		int count = 0;
+		while (!q.empty()) {
+			Cell u = q.front();
+			q.pop();
+			++count;
+			for (int d = 0; d < 4; ++d) {
+				int nx = u.first + SnakeEnv::DX[d], ny = u.second + SnakeEnv::DY[d];
+				if (nx < 0 || nx >= side || ny < 0 || ny >= side || seen[ny * side + nx]) continue;
+				seen[ny * side + nx] = 1;
+				q.push({nx, ny});
+			}
+		}
+		return count;
+	}
+
+	/**
 	 * Returns std::vector<int>: Shortest path length to the food over free cells, per cell (-1 if unreachable)
 	 */
 	std::vector<int> distToFood() const {
@@ -198,6 +226,25 @@ std::vector<float> SafeAgent::actionFeatures(const Snapshot& s) {
 		// Steps worse than the best safe move, capped at 4 and scaled to 0..1, so the choice is visible to the network
 		float regret = o.blocked || o.path < 0 ? 1.0f : static_cast<float>(std::min(o.path - bestSafe, 4)) / 4.0f;
 		f.insert(f.end(), {o.blocked ? 1.0f : 0.0f, o.safe ? 1.0f : 0.0f, std::max(regret, 0.0f), o.cycleStep ? 1.0f : 0.0f});
+	}
+	return f;
+}
+
+std::vector<float> SafeAgent::extendedFeatures(const Snapshot& s) {
+	std::vector<float> f = actionFeatures(s);
+	const View v(s, tree_, haveTree_);
+	const int tailPos = v.cyclePos(v.body.back()), foodPos = v.cyclePos({s.food.first, s.food.second});
+	const float cells = static_cast<float>(v.cells);
+	for (int a = 0; a < SnakeEnv::ACTIONS; ++a) {
+		Cell c = v.target(a);
+		if (v.blocked(c.first, c.second)) {
+			f.insert(f.end(), {1.0f, 0.0f, 1.0f});
+			continue;
+		}
+		const int p = v.cyclePos(c);
+		f.insert(f.end(), {static_cast<float>(v.reachableAfter(c)) / cells,
+			static_cast<float>(((tailPos - p) % v.cells + v.cells) % v.cells) / cells,
+			static_cast<float>(((foodPos - p) % v.cells + v.cells) % v.cells) / cells});
 	}
 	return f;
 }

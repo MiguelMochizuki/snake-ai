@@ -78,6 +78,21 @@ public:
 
 	/** Same as actionFeatures(env) but from a Snapshot */
 	std::vector<float> actionFeatures(const Snapshot& s);
+
+	static const int EXTRA_PER_ACTION = 3;
+	static const int EXT_FEATURES = ACTION_FEATURES + 3 * EXTRA_PER_ACTION;
+
+	/**
+	 * actionFeatures followed by what a lookahead exploits, all fractions of the board so they do not depend on scale. For each of
+	 * straight, right and left: (a) cells reachable from the target cell over free cells after the move, (b) cycle distance from the target
+	 * cell to the tail, (c) cycle distance from the target cell to the food. A blocked move gets 1, 0, 1 (its blocked flag is in the prefix)
+	 *
+	 * Parameters:
+	 * const Snapshot& s: Current game
+	 *
+	 * Returns std::vector<float>: EXT_FEATURES values, the first ACTION_FEATURES equal to actionFeatures(s)
+	 */
+	std::vector<float> extendedFeatures(const Snapshot& s);
 };
 
 /**
