@@ -63,17 +63,24 @@ std::vector<float> esStep(const std::vector<float>& theta, const EsConfig& cfg, 
 	}
 	for (std::thread& th : pool) th.join();
 
-	// Centred ranks: the costliest candidate gets -0.5, the cheapest +0.5; ties keep candidate order
+	// Centred ranks: the costliest candidate gets -0.5, the cheapest +0.5. Tied candidates share the mean of their ranks, so a flat
+	// landscape (every move of the network still picks the same action) gives every candidate 0 and theta stays put
 	std::vector<size_t> order(pop);
 	std::iota(order.begin(), order.end(), size_t{0});
 	std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) { return costs[a] > costs[b]; });
+	std::vector<float> utility(pop);
+	for (size_t r = 0; r < pop;) {
+		size_t end = r;
+		while (end + 1 < pop && costs[order[end + 1]] == costs[order[r]]) ++end;
+		const float mid = 0.5f * static_cast<float>(r + end) / static_cast<float>(pop - 1) - 0.5f;
+		for (size_t k = r; k <= end; ++k) utility[order[k]] = mid;
+		r = end + 1;
+	}
 	std::vector<float> next = theta;
 	const float step = cfg.lr / (static_cast<float>(pop) * cfg.sigma);
-	for (size_t r = 0; r < pop; ++r) {
-		const size_t i = order[r];
-		const float utility = static_cast<float>(r) / static_cast<float>(pop - 1) - 0.5f;
+	for (size_t i = 0; i < pop; ++i) {
 		const float sign = i % 2 == 0 ? 1.0f : -1.0f;
-		for (size_t j = 0; j < n; ++j) next[j] += step * utility * sign * eps[i / 2][j];
+		for (size_t j = 0; j < n; ++j) next[j] += step * utility[i] * sign * eps[i / 2][j];
 	}
 	return next;
 }

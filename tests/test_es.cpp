@@ -73,3 +73,11 @@ TEST_CASE("esStep rejects a population that cannot be paired and a non-positive 
 	cfg.sigma = 0.0f;
 	CHECK_THROWS_AS(esStep({0.0f}, cfg, 0, quadratic), std::invalid_argument);
 }
+
+TEST_CASE("esStep leaves the weights alone when every candidate costs the same") {
+	// A flat landscape carries no information: tied candidates must not push theta anywhere
+	EsConfig cfg;
+	const std::vector<float> theta(8, 0.5f);
+	const std::vector<float> next = esStep(theta, cfg, 3, [](const std::vector<float>&) { return 7.0; });
+	for (size_t j = 0; j < theta.size(); ++j) CHECK(next[j] == doctest::Approx(theta[j]).epsilon(1e-6));
+}
