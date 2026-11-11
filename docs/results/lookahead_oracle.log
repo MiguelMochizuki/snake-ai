@@ -1,0 +1,26 @@
+# Validation sweep of K (seeds 20000..20019), chosen K = 6
+## validate K=1
+lookahead_oracle validate: foods K=1, 20 seeds, 20x20 (the oracle sees the true future foods: upper bound only)
+safe A* (teacher)          mean steps   15565.1  deaths 0/20  not full 0/20
+leaked lookahead           mean steps   11342.5  deaths 0/20  not full 0/20
+relative change in steps -27.13%  95% CI [-29.34%, -24.92%]
+GATE A: PASS
+## validate K=3
+lookahead_oracle validate: foods K=3, 20 seeds, 20x20 (the oracle sees the true future foods: upper bound only)
+safe A* (teacher)          mean steps   15565.1  deaths 0/20  not full 0/20
+leaked lookahead           mean steps   10499.2  deaths 0/20  not full 0/20
+relative change in steps -32.55%  95% CI [-34.37%, -30.48%]
+GATE A: PASS
+## validate K=6
+lookahead_oracle validate: foods K=6, 20 seeds, 20x20 (the oracle sees the true future foods: upper bound only)
+safe A* (teacher)          mean steps   15565.1  deaths 0/20  not full 0/20
+leaked lookahead           mean steps   10151.9  deaths 0/20  not full 0/20
+relative change in steps -34.78%  95% CI [-36.61%, -32.83%]
+GATE A: PASS
+
+# Test (seeds 100000..100029), K = 6
+lookahead_oracle test: foods K=6, 30 seeds, 20x20 (the oracle sees the true future foods: upper bound only)
+safe A* (teacher)          mean steps   16016.2  deaths 0/30  not full 0/30
+leaked lookahead           mean steps   10291.4  deaths 0/30  not full 0/30
+relative change in steps -35.74%  95% CI [-37.19%, -34.12%]
+GATE A: PASS
