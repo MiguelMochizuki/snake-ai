@@ -40,6 +40,8 @@ double report(const char* name, const std::vector<GameResult>& r) {
  * validate uses the seeds 20000..20019, test the seeds 100000..100029. The sampled futures use a fixed base seed, so results do not depend on the thread count
  */
 int main(int argc, char** argv) {
+	// Line-buffered, so a redirected log shows the parsed arguments and each finished arm while a long run is still going
+	std::setvbuf(stdout, nullptr, _IOLBF, 0);
 	// Exactly <mode> [foods] [samples] [threads], each a whole positive integer; anything else is refused instead of guessed
 	LookaheadConfig cfg;
 	cfg.foods = 6;

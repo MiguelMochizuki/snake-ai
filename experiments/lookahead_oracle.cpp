@@ -40,6 +40,8 @@ double report(const char* name, const std::vector<GameResult>& r) {
  * validate uses the seeds 20000..20019, test the seeds 100000..100029
  */
 int main(int argc, char** argv) {
+	// Line-buffered, so a redirected log shows the parsed arguments and each finished arm while a long run is still going
+	std::setvbuf(stdout, nullptr, _IOLBF, 0);
 	// Exactly <mode> [foods] [threads], each a whole positive integer; anything else is refused instead of guessed
 	int foods = 3, threads = 12;
 	const bool modeOk = argc >= 2 && (std::strcmp(argv[1], "validate") == 0 || std::strcmp(argv[1], "test") == 0);
