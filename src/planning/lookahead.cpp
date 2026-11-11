@@ -114,3 +114,42 @@ int lookaheadLeaked(const SnakeEnv& env, SafeAgent& agent, int foods) {
 	}
 	return bestMove(cost, c.safe, preferred);
 }
+
+int timedDistance(const Snapshot& s, Cell from, int t0) {
+	const int n = s.size, len = static_cast<int>(s.body.size());
+	// freeFrom[c]: first step at which the head may enter the cell (0 for cells off the body)
+	std::vector<int> freeFrom(n * n, 0), arrival(n * n, -1);
+	for (int i = 0; i < len; ++i) freeFrom[s.body[i].second * n + s.body[i].first] = len - i;
+	if (from.first < 0 || from.first >= n || from.second < 0 || from.second >= n || t0 < freeFrom[from.second * n + from.first]) return -1;
+	std::vector<Cell> queue{from};
+	arrival[from.second * n + from.first] = t0;
+	for (size_t i = 0; i < queue.size(); ++i) {
+		const Cell c = queue[i];
+		const int t = arrival[c.second * n + c.first];
+		if (c == s.food) return t;
+		for (int d = 0; d < 4; ++d) {
+			const Cell next{c.first + SnakeEnv::DX[d], c.second + SnakeEnv::DY[d]};
+			if (next.first < 0 || next.first >= n || next.second < 0 || next.second >= n) continue;
+			const int k = next.second * n + next.first;
+			// Entering at the first arrival is exact: a cell that is free at step t stays free later
+			if (arrival[k] >= 0 || t + 1 < freeFrom[k]) continue;
+			arrival[k] = t + 1;
+			queue.push_back(next);
+		}
+	}
+	return -1;
+}
+
+int timedAstarAction(const Snapshot& s, SafeAgent& agent) {
+	Candidates c = candidatesOf(s, agent);
+	if (c.forced >= 0) return c.forced;
+	SafeAgent baseline = agent;
+	const int preferred = teacherAction(s, baseline);
+	std::vector<double> cost;
+	for (int a : c.safe) {
+		const int d = SnakeEnv::turn(s.dir, a);
+		const int t = timedDistance(s, {s.body[0].first + SnakeEnv::DX[d], s.body[0].second + SnakeEnv::DY[d]}, 1);
+		cost.push_back(t < 0 ? s.starveLimit() : t);
+	}
+	return bestMove(cost, c.safe, preferred);
+}

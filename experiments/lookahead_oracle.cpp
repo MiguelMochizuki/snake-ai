@@ -47,6 +47,10 @@ int main(int argc, char** argv) {
 	const bool validate = std::strcmp(argv[1], "validate") == 0;
 	const int foods = argc > 2 ? std::atoi(argv[2]) : 3;
 	const int threads = argc > 3 ? std::atoi(argv[3]) : 12;
+	if (foods < 1 || threads < 1) {
+		std::fprintf(stderr, "foods and threads must be positive integers\n");
+		return 2;
+	}
 	std::vector<unsigned> seeds;
 	for (unsigned g = 0; g < (validate ? 20u : 30u); ++g) seeds.push_back((validate ? 20000u : 100000u) + g);
 

@@ -1,4 +1,4 @@
-foreach(experiment bfs_safe lookahead_oracle safe_modes scale_test)
+foreach(experiment bfs_safe lookahead_oracle lookahead_teacher safe_modes timed_astar scale_test)
 	add_executable(${experiment} ${experiment}.cpp)
 	target_link_libraries(${experiment} PRIVATE snake_ai_core)
 	snake_ai_set_warnings(${experiment})
