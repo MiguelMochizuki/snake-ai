@@ -10,6 +10,7 @@
 #include "snake_ai/planning/modes.hpp"
 
 #include <functional>
+#include <string>
 #include <vector>
 
 /**
@@ -89,5 +90,31 @@ bool passesGate(const Interval& iv);
  * Returns bool: true if text is a valid integer >= minValue
  */
 bool parseInt(const char* text, int minValue, int& out);
+
+/**
+ * Parameters:
+ * const char* text: A command-line mode (may be null)
+ *
+ * Returns bool: true for "validate", "test" or "smoke"
+ */
+bool isRunMode(const char* text);
+
+/**
+ * Food seeds of a mode: validate 20000..20019, test 100000..100029 (disjoint, the test set is touched once per arm), smoke 1000..1001 (a quick run that exercises the same code)
+ *
+ * Parameters:
+ * const std::string& mode: "validate", "test" or "smoke"
+ *
+ * Returns std::vector<unsigned>: The seeds; throws std::invalid_argument for another mode
+ */
+std::vector<unsigned> seedsFor(const std::string& mode);
+
+/**
+ * Parameters:
+ * const std::string& mode: "validate", "test" or "smoke"
+ *
+ * Returns int: Board side: 20, or 10 for smoke; throws std::invalid_argument for another mode
+ */
+int boardFor(const std::string& mode);
 
 #endif

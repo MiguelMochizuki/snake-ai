@@ -8,6 +8,8 @@
 #include "snake_ai/eval/paired.hpp"
 #include "snake_ai/planning/modes.hpp"
 
+#include <stdexcept>
+
 TEST_CASE("bootstrapRelDiff on a constant 10 percent drop") {
 	std::vector<double> base(30, 100.0), test(30, 90.0);
 	Interval iv = bootstrapRelDiff(base, test, 500, 1);
@@ -62,4 +64,28 @@ TEST_CASE("parseInt accepts only a whole decimal integer at or above the minimum
 		CHECK(v == -7);  // a rejected value never touches the output
 	}
 	CHECK_FALSE(parseInt(nullptr, 1, v));
+}
+
+TEST_CASE("modes map to disjoint seed ranges and board sizes") {
+	CHECK(isRunMode("validate"));
+	CHECK(isRunMode("test"));
+	CHECK(isRunMode("smoke"));
+	CHECK_FALSE(isRunMode("valid"));
+	CHECK_FALSE(isRunMode(""));
+	CHECK_FALSE(isRunMode(nullptr));
+
+	std::vector<unsigned> val = seedsFor("validate"), tst = seedsFor("test"), smk = seedsFor("smoke");
+	REQUIRE(val.size() == 20);
+	REQUIRE(tst.size() == 30);
+	REQUIRE(smk.size() == 2);
+	CHECK(val.front() == 20000u);
+	CHECK(tst.front() == 100000u);
+	CHECK(boardFor("validate") == 20);
+	CHECK(boardFor("test") == 20);
+	CHECK(boardFor("smoke") == 10);
+	for (unsigned a : val) {
+		for (unsigned b : tst) CHECK(a != b);
+	}
+	CHECK_THROWS_AS(seedsFor("nope"), std::invalid_argument);
+	CHECK_THROWS_AS(boardFor("nope"), std::invalid_argument);
 }

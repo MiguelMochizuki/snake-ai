@@ -9,6 +9,7 @@
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
+#include <cstring>
 #include <random>
 #include <stdexcept>
 #include <thread>
@@ -76,4 +77,22 @@ bool parseInt(const char* text, int minValue, int& out) {
 	if (errno != 0 || end == text || *end != '\0' || v < minValue || v > INT_MAX) return false;
 	out = static_cast<int>(v);
 	return true;
+}
+
+bool isRunMode(const char* text) {
+	return text && (std::strcmp(text, "validate") == 0 || std::strcmp(text, "test") == 0 || std::strcmp(text, "smoke") == 0);
+}
+
+std::vector<unsigned> seedsFor(const std::string& mode) {
+	if (!isRunMode(mode.c_str())) throw std::invalid_argument("unknown mode: " + mode);
+	const unsigned first = mode == "validate" ? 20000u : mode == "test" ? 100000u : 1000u;
+	const unsigned count = mode == "validate" ? 20u : mode == "test" ? 30u : 2u;
+	std::vector<unsigned> seeds;
+	for (unsigned g = 0; g < count; ++g) seeds.push_back(first + g);
+	return seeds;
+}
+
+int boardFor(const std::string& mode) {
+	if (!isRunMode(mode.c_str())) throw std::invalid_argument("unknown mode: " + mode);
+	return mode == "smoke" ? 10 : 20;
 }
