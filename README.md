@@ -23,7 +23,7 @@ apps/           executables: compare, evolve, imitate_astar, selector, watch
 cmake/          FetchDoctest.cmake (fetches doctest for the tests)
 deps/           submodules: snake-game (game logic) and nn-cpp (neural network)
 docs/           REPORT.md and results/ (logs of the final runs)
-experiments/    bfs_safe, safe_modes, scale_test, timed_astar, lookahead_oracle, lookahead_teacher, es_finetune
+experiments/    bfs_safe, safe_modes, scale_test, timed_astar, lookahead_oracle, lookahead_teacher, es_finetune, distill_lookahead
 include/snake_ai/
   env/          headless environment and the fixed 20x20 Hamiltonian cycle
   planning/     tile-tree cycles, the A*, shortcut and cycle modes, Snapshot, Sim and the lookaheads
@@ -47,7 +47,7 @@ Requirements: a C++17 compiler and CMake 3.16+.
 git clone --recursive git@github.com:MiguelMochizuki/snake-ai.git
 cd snake-ai
 make test      # builds everything and runs the tests; binaries land in build/bin
-make watch     # watch the A* network play in the terminal
+make watch     # watch the ES fine-tuned network play in the terminal (CHECKPOINT=models/imitation_astar.ckpt KIND=astar for the imitation one)
 make watch-gui # the same in a window (builds with SDL3 into build-sdl/)
 ```
 
@@ -68,7 +68,8 @@ Both dependencies are git submodules in `deps/`: `snake-game` at v2.3.0 (headers
 ./build/bin/evolve GENOME [steps] [nocoil]   # genetic algorithm
 ./build/bin/imitate_astar            # trains the safe-A* imitation network, writes imitation_astar.ckpt
 ./build/bin/selector                 # learned mode selector
-./build/bin/watch models/imitation_astar.ckpt 1 120 1 astar   # watch a network play in the terminal
+./build/bin/watch models/es_finetuned.ckpt 1 120 1 es   # watch the ES fine-tuned network play in the terminal
+./build/bin/watch models/imitation_astar.ckpt 1 120 1 astar   # the imitation network
 ./build/bin/watch models/imitation_astar.ckpt 1 50 1 astar --gui   # same, in a window (GUI build)
 ./build/bin/watch models/imitation_astar.ckpt 1 50 125 astar --frames frames   # off-screen PPM frames, no display needed (GUI build)
 ./build/bin/safe_modes [games]       # A*, shortcut and cycle modes with the safety guarantee
@@ -79,11 +80,12 @@ Both dependencies are git submodules in `deps/`: `snake-game` at v2.3.0 (headers
 ./build/bin/lookahead_teacher <validate|test|smoke> [foods] [samples] [threads]   # honest lookahead on sampled futures
 ./build/bin/es_finetune [generations=200] [threads=12] [--sigma=X] [--lr=X] [--final]   # evolution strategies from models/imitation_astar.ckpt
 ./build/bin/es_finetune --eval [threads=12]   # reloads models/es_finetuned.ckpt and runs the final test
+./build/bin/distill_lookahead [rounds=4] [games=48] [threads=12] [--final]   # distils the honest K=1 lookahead into the network (negative result, see the report)
 ```
 
 `validate` uses seeds 20000 to 20019, `test` seeds 100000 to 100029 (20x20) and `smoke` two games on 10x10; the test games are for the final comparison only. `es_finetune` saves `models/es_trial.ckpt` and touches the test games only with `--final`, which is also the only run that writes `models/es_finetuned.ckpt`; run it from the repository root.
 
-`GENOME` is the weights file written by `evolve`; `steps` is the per-game step cap during evolution (default 4000); `nocoil` zeroes the winding-number term for comparison. `watch` takes `checkpoint [seed] [ms per frame] [draw every N steps] [astar]`, plus `--gui` or `--frames DIR` in the GUI build. The GIF above was made from such frames: `ffmpeg -framerate 25 -i frames/frame-%05d.ppm -vf "crop=640:662:0:0,scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=24:stats_mode=diff[p];[b][p]paletteuse=dither=none" -loop 0 docs/astar_network.gif`. To see output while training, run under `stdbuf -oL`, since stdout is buffered when redirected.
+`GENOME` is the weights file written by `evolve`; `steps` is the per-game step cap during evolution (default 4000); `nocoil` zeroes the winding-number term for comparison. `watch` takes `checkpoint [seed] [ms per frame] [draw every N steps] [astar|es]` (`es` for `es_finetuned.ckpt`, whose 21 features differ from the imitation network's), plus `--gui` or `--frames DIR` in the GUI build. The GIF above was made from such frames: `ffmpeg -framerate 25 -i frames/frame-%05d.ppm -vf "crop=640:662:0:0,scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=24:stats_mode=diff[p];[b][p]paletteuse=dither=none" -loop 0 docs/astar_network.gif`. To see output while training, run under `stdbuf -oL`, since stdout is buffered when redirected.
 
 ## Key Results
 

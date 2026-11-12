@@ -15,7 +15,9 @@ CMAKE = cmake
 CMAKE_FLAGS = -DCMAKE_BUILD_TYPE=Release
 
 # Settings for watch and gif (override on the command line, e.g. make watch SEED=3)
-CHECKPOINT ?= models/imitation_astar.ckpt
+CHECKPOINT ?= models/es_finetuned.ckpt
+# KIND: es for es_finetuned.ckpt, astar for imitation_astar.ckpt
+KIND ?= es
 SEED ?= 1
 MS ?= 50
 FRAMES_DIR ?= frames
@@ -86,16 +88,16 @@ test-all: test test-gui
 
 .PHONY: watch watch-gui gif
 watch: all
-	@$(BUILD)/bin/watch $(CHECKPOINT) $(SEED) $(MS) 1 astar
+	@$(BUILD)/bin/watch $(CHECKPOINT) $(SEED) $(MS) 1 $(KIND)
 
 watch-gui: gui
-	@$(GUI_BUILD)/bin/watch $(CHECKPOINT) $(SEED) $(MS) 1 astar --gui
+	@$(GUI_BUILD)/bin/watch $(CHECKPOINT) $(SEED) $(MS) 1 $(KIND) --gui
 
 # Remakes the README GIF from off-screen frames (needs ffmpeg)
 gif: gui
 	@echo "$(BLUE)Drawing frames...$(NC)"
 	@rm -rf $(FRAMES_DIR) && mkdir -p $(FRAMES_DIR)
-	@$(GUI_BUILD)/bin/watch $(CHECKPOINT) $(SEED) $(MS) 125 astar --frames $(FRAMES_DIR)
+	@$(GUI_BUILD)/bin/watch $(CHECKPOINT) $(SEED) $(MS) 125 $(KIND) --frames $(FRAMES_DIR)
 	@ffmpeg -loglevel error -y -framerate 25 -i $(FRAMES_DIR)/frame-%05d.ppm \
 		-vf "crop=640:662:0:0,scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=24:stats_mode=diff[p];[b][p]paletteuse=dither=none" \
 		-loop 0 $(GIF)
@@ -131,7 +133,7 @@ help:
 	@echo "  make test-gui       - Same, for the GUI build"
 	@echo "  make test-all       - Both"
 	@echo ""
-	@echo "$(BLUE)Watch a network play (CHECKPOINT, SEED and MS can be overridden):$(NC)"
+	@echo "$(BLUE)Watch a network play (CHECKPOINT, KIND, SEED and MS can be overridden; the default is the ES network):$(NC)"
 	@echo "  make watch          - In the terminal"
 	@echo "  make watch-gui      - In a window"
 	@echo "  make gif            - Remake $(GIF) with ffmpeg"

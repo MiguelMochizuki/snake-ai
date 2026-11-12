@@ -72,7 +72,7 @@ void draw(const SnakeEnv& env, int step) {
  *
  * Parameters:
  * int argc: Argument count
- * char** argv: argv[1] is the checkpoint, then optional seed, milliseconds per frame, draw stride and "astar";
+ * char** argv: argv[1] is the checkpoint, then optional seed, milliseconds per frame, draw stride and "astar" or "es" (the ES fine-tuned 21-feature network);
  * --gui (window) and --frames DIR (off-screen PPM frames) may appear anywhere and need the GUI build
  *
  * Returns int: 0 on success, 1 on bad usage or if the checkpoint cannot be loaded
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 	argc = static_cast<int>(args.size());
 	argv = args.data();
 	if (argc < 2) {
-		std::fprintf(stderr, "usage: %s CHECKPOINT [seed=1] [ms per frame=50] [draw every N steps=1] [astar] [--gui | --frames DIR]\n", argv[0]);
+		std::fprintf(stderr, "usage: %s CHECKPOINT [seed=1] [ms per frame=50] [draw every N steps=1] [astar|es] [--gui | --frames DIR]\n", argv[0]);
 		return 1;
 	}
 #ifndef SNAKE_AI_HAVE_GUI
@@ -107,9 +107,17 @@ int main(int argc, char** argv) {
 	int ms = argc > 3 ? std::atoi(argv[3]) : 50;
 	int stride = argc > 4 ? std::max(1, std::atoi(argv[4])) : 1;
 
-	const bool astar = argc > 5 && std::string(argv[5]) == "astar";  // checkpoint from imitate_astar
-	nn::Sequential net = astar ? makeAstarNet() : makeNet(32);
+	const std::string kind = argc > 5 ? argv[5] : "";
+	const bool es = kind == "es";  // checkpoint from es_finetune
+	const bool astar = kind == "astar" || es;  // checkpoint from imitate_astar or es_finetune
+	nn::Sequential net = es ? makeExtendedNet() : astar ? makeAstarNet() : makeNet(32);
 	SafeAgent agent;
+	const auto netMove = [&](SnakeEnv& e) {
+		if (!astar) {
+			return greedy(net, e.features());
+		}
+		return astarNetAction(net, es ? agent.extendedFeatures(snapshotOf(e)) : agent.actionFeatures(e), e.sinceFood() > e.loopGuard(), true);
+	};
 	try {
 		nn::load_checkpoint(argv[1], net);
 	} catch (const std::exception& e) {
@@ -120,7 +128,7 @@ int main(int argc, char** argv) {
 #ifdef SNAKE_AI_HAVE_GUI
 	if (gui || !framesDir.empty()) {
 		SnakeEnv genv(seed);
-		const ActionFn act = [&](SnakeEnv& e) { return astar ? astarNetAction(net, agent.actionFeatures(e), e.sinceFood() > e.loopGuard(), true) : greedy(net, e.features()); };
+		const ActionFn act = [&](SnakeEnv& e) { return netMove(e); };
 		const int result = framesDir.empty() ? playInWindow(genv, act, ms, stride, MAX_STEPS) : playToFrames(genv, act, framesDir, stride, MAX_STEPS);
 		if (result < 0) {
 			std::fprintf(stderr, "cannot open a %s\n", framesDir.empty() ? "window (is a display available?)" : "canvas");
@@ -142,7 +150,7 @@ int main(int argc, char** argv) {
 			draw(env, step);
 			std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 		}
-		env.step(astar ? astarNetAction(net, agent.actionFeatures(env), env.sinceFood() > env.loopGuard(), true) : greedy(net, env.features()));
+		env.step(netMove(env));
 		++step;
 	}
 	draw(env, step);
