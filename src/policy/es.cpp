@@ -14,7 +14,7 @@
 std::vector<float> getWeights(const nn::Sequential& net) {
 	std::vector<float> w;
 	for (nn::Value& p : net.parameters()) {
-		const std::vector<float>& d = p.data().data();
+		const nn::Storage& d = p.data().data();
 		w.insert(w.end(), d.begin(), d.end());
 	}
 	return w;
@@ -27,7 +27,7 @@ void setWeights(nn::Sequential& net, const std::vector<float>& w) {
 	if (total != w.size()) throw std::invalid_argument("setWeights: expected " + std::to_string(total) + " weights, got " + std::to_string(w.size()));
 	size_t at = 0;
 	for (nn::Value& p : params) {
-		std::vector<float>& d = p.data().data();
+		nn::Storage& d = p.data().data();
 		std::copy(w.begin() + static_cast<long>(at), w.begin() + static_cast<long>(at + d.size()), d.begin());
 		at += d.size();
 	}

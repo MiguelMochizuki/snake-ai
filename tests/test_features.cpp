@@ -56,8 +56,8 @@ TEST_CASE("widened network reproduces the old one") {
 		std::vector<float> ext = agent.extendedFeatures(s);
 		std::vector<float> base(ext.begin(), ext.begin() + SafeAgent::ACTION_FEATURES);
 		nn::NoGradGuard noGrad;
-		std::vector<float> a = old.forward(nn::Value::leaf(nn::Tensor({1, base.size()}, base), false)).data().data();
-		std::vector<float> b = wide.forward(nn::Value::leaf(nn::Tensor({1, ext.size()}, ext), false)).data().data();
+		nn::Storage a = old.forward(nn::Value::leaf(nn::Tensor({1, base.size()}, base), false)).data().data();
+		nn::Storage b = wide.forward(nn::Value::leaf(nn::Tensor({1, ext.size()}, ext), false)).data().data();
 		REQUIRE(a.size() == b.size());
 		for (size_t i = 0; i < a.size(); ++i) CHECK(b[i] == doctest::Approx(a[i]).epsilon(1e-6));
 	});

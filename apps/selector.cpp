@@ -190,7 +190,7 @@ int main() {
 	evaluate("learned selector", [&](const SnakeEnv& env, SafeAgent& agent) {
 		NoGradGuard noGrad;
 		Value out = net.forward(Value::leaf(Tensor({1, F}, agent.features(env)), false));
-		const std::vector<float>& q = out.data().data();
+		const nn::Storage& q = out.data().data();
 		return static_cast<Mode>(std::max_element(q.begin(), q.end()) - q.begin());
 	});
 	return 0;

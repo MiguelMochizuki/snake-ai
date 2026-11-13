@@ -227,7 +227,7 @@ void dqn(bool ego, const char* genomePath) {
 			{
 				NoGradGuard noGrad;
 				Value q2 = target.forward(Value::leaf(Tensor({DQN_BATCH, in}, bs2), false));
-				const std::vector<float>& q = q2.data().data();
+				const nn::Storage& q = q2.data().data();
 				for (size_t b = 0; b < DQN_BATCH; ++b) {
 					float best = *std::max_element(q.begin() + b * A, q.begin() + (b + 1) * A);
 					mask[b * A + actions[b]] = 1.0f;
