@@ -35,7 +35,7 @@ TEST_CASE("get/set weights round trip leaves the outputs unchanged") {
 	std::vector<float> in(SafeAgent::ACTION_FEATURES, 0.3f);
 	nn::NoGradGuard noGrad;
 	auto forward = [&] { return net.forward(nn::Value::leaf(nn::Tensor({1, in.size()}, in), false)).data().data(); };
-	const std::vector<float> before = forward();
+	const nn::Storage before = forward();
 	setWeights(net, w);
 	CHECK(forward() == before);
 	// A copy of the weights in a second network makes it behave the same

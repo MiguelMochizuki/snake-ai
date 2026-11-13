@@ -47,7 +47,7 @@ inline nn::Sequential makeNet(size_t hidden, size_t inputs = SnakeEnv::FEATURES)
 inline int greedy(nn::Sequential& net, const std::vector<float>& features) {
 	nn::NoGradGuard noGrad;
 	nn::Value out = net.forward(nn::Value::leaf(nn::Tensor({1, features.size()}, features), false));
-	const std::vector<float>& q = out.data().data();
+	const nn::Storage& q = out.data().data();
 	return static_cast<int>(std::max_element(q.begin(), q.end()) - q.begin());
 }
 

@@ -58,8 +58,8 @@ inline void widenFromAstar(nn::Sequential& wide, const nn::Sequential& old) {
 	std::vector<nn::Value> w = wide.parameters(), o = old.parameters();
 	const size_t oldIn = SafeAgent::ACTION_FEATURES, newIn = SafeAgent::EXT_FEATURES;
 	for (size_t i = 0; i < w.size(); ++i) {
-		std::vector<float>& dst = w[i].data().data();
-		const std::vector<float>& src = o[i].data().data();
+		nn::Storage& dst = w[i].data().data();
+		const nn::Storage& src = o[i].data().data();
 		if (i == 0) {
 			// First-layer weight, row-major {out, in}: widen each row
 			std::fill(dst.begin(), dst.end(), 0.0f);
@@ -90,7 +90,7 @@ inline int astarNetAction(nn::Sequential& net, const std::vector<float>& feature
 	}
 	nn::NoGradGuard noGrad;
 	nn::Value out = net.forward(nn::Value::leaf(nn::Tensor({1, features.size()}, features), false));
-	const std::vector<float>& q = out.data().data();
+	const nn::Storage& q = out.data().data();
 	int best = -1;
 	for (int a = 0; a < SnakeEnv::ACTIONS; ++a) {
 		bool allowed = !onlySafe || features[4 * a + 1] > 0.5f;
