@@ -40,4 +40,4 @@ int act(const SnakeEnv& env, Mode mode);
  */
 ```
 
-Trivial getters need no block. Comments inside functions say why, not what.
+A definition in a `.cpp` whose declaration in the header already has the block does not repeat it. Trivial getters need no block. Comments inside functions say why, not what.

@@ -39,6 +39,12 @@ int edgeOf(int t, Cell a, Cell b, bool* crosses) {
 	return ax % 2 == 0 ? (tx > 0 ? hEdge(t, tx - 1, ay / 2) : -1) : (tx < t - 1 ? hEdge(t, tx, ay / 2) : -1);
 }
 
+/**
+ * Disjoint sets with path compression, used by treeFor to check that the tile edges forced into the tree close no loop
+ *
+ * Attributes:
+ * std::vector<int> p: Parent of each element; a root is its own parent
+ */
 struct UnionFind {
 	std::vector<int> p;
 	explicit UnionFind(int size) : p(size) { std::iota(p.begin(), p.end(), 0); }
