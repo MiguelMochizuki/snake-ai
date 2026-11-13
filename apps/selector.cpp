@@ -55,6 +55,13 @@ int rollout(SnakeEnv env, SafeAgent agent, Mode mode) {
 	return env.score() - start;
 }
 
+/**
+ * One labelled state for training the mode selector
+ *
+ * Attributes:
+ * std::vector<float> x: Mode features of the state
+ * int label: Mode with the largest score gain in a rollout from this state (ASTAR unless another beats it by MARGIN)
+ */
 struct Sample {
 	std::vector<float> x;
 	int label;

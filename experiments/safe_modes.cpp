@@ -67,6 +67,14 @@ bool checkConstruction(int n) {
 	return true;
 }
 
+/**
+ * Result of a batch of games
+ *
+ * Attributes:
+ * double score: Mean points per game
+ * double steps: Mean steps per game
+ * int died: Number of games that ended in death
+ */
 struct Result { double score = 0, steps = 0; int died = 0; };
 
 /**
