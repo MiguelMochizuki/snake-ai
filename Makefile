@@ -18,7 +18,12 @@ CMAKE_FLAGS = -DCMAKE_BUILD_TYPE=Release
 CHECKPOINT ?= models/es_finetuned.ckpt
 # KIND: es for es_finetuned.ckpt, astar for imitation_astar.ckpt
 KIND ?= es
-SEED ?= 1
+GIF_CHECKPOINT ?= models/imitation_astar.ckpt
+GIF_KIND ?= astar
+SEED ?= random
+# The GIF is always the same game, so it has its own seed and a low frame rate
+GIF_SEED ?= 1
+GIF_FPS ?= 10
 MS ?= 50
 FRAMES_DIR ?= frames
 GIF ?= docs/astar_network.gif
@@ -97,9 +102,9 @@ watch-gui: gui
 gif: gui
 	@echo "$(BLUE)Drawing frames...$(NC)"
 	@rm -rf $(FRAMES_DIR) && mkdir -p $(FRAMES_DIR)
-	@$(GUI_BUILD)/bin/watch $(CHECKPOINT) $(SEED) $(MS) 125 $(KIND) --frames $(FRAMES_DIR)
-	@ffmpeg -loglevel error -y -framerate 25 -i $(FRAMES_DIR)/frame-%05d.ppm \
-		-vf "crop=640:662:0:0,scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=24:stats_mode=diff[p];[b][p]paletteuse=dither=none" \
+	@$(GUI_BUILD)/bin/watch $(GIF_CHECKPOINT) $(GIF_SEED) $(MS) 125 $(GIF_KIND) --frames $(FRAMES_DIR)
+	@ffmpeg -loglevel error -y -framerate $(GIF_FPS) -i $(FRAMES_DIR)/frame-%05d.ppm \
+		-vf "crop=640:656:0:0,scale=360:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=24:stats_mode=diff[p];[b][p]paletteuse=dither=none" \
 		-loop 0 $(GIF)
 	@rm -rf $(FRAMES_DIR)
 	@echo "$(GREEN)Wrote $(GIF)$(NC)"
@@ -133,10 +138,10 @@ help:
 	@echo "  make test-gui       - Same, for the GUI build"
 	@echo "  make test-all       - Both"
 	@echo ""
-	@echo "$(BLUE)Watch a network play (CHECKPOINT, KIND, SEED and MS can be overridden; the default is the ES network):$(NC)"
+	@echo "$(BLUE)Watch a network play (CHECKPOINT, KIND, SEED and MS can be overridden; the default is the ES network on a random seed):$(NC)"
 	@echo "  make watch          - In the terminal"
 	@echo "  make watch-gui      - In a window"
-	@echo "  make gif            - Remake $(GIF) with ffmpeg"
+	@echo "  make gif            - Remake $(GIF) with ffmpeg (GIF_SEED, GIF_FPS, GIF_CHECKPOINT, GIF_KIND)"
 	@echo ""
 	@echo "$(BLUE)Clean:$(NC)"
 	@echo "  make clean          - Remove the build directories"

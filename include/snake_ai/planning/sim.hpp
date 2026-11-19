@@ -42,7 +42,13 @@ class Sim {
 	int steps_ = 0;
 	std::mt19937 rng_;
 
-	/** Draws a new food on a uniformly random free cell; the caller guarantees one exists */
+	/**
+	 * Draws a new food on a uniformly random free cell; the caller guarantees one exists
+	 *
+	 * Parameters: none, it uses rng_ and the current body
+	 *
+	 * Returns void: food_ holds the new food
+	 */
 	void spawnFood();
 
 public:

@@ -1,5 +1,7 @@
 # commit 23df867, 2026-11-11T18:44:08-03:00
 # cmd: build/bin/es_finetune 200 12 --sigma=0.2 --lr=0.2 --final
+# note: experiments/es_finetune.cpp changed after this commit (e997eed: non-final runs save models/es_trial.ckpt, and the number of generations is capped) and later
+# the checkpoint step stores the best generation. None of this touches the numbers below; the run was not repeated.
 es_finetune: generations 200, threads 12, population 32, sigma 0.2, lr 0.2, batch 16 episodes of 20 foods, starting lengths 25/50/75/90% of 20x20
 validation start: 15565.1 steps
 gen   0  network cost   832.8  A* cost   832.8  (+0.0%)

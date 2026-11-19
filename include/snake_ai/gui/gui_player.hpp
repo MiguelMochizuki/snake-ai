@@ -10,6 +10,7 @@
 #include "snake_ai/env/snake_env.hpp"
 #include "snake_game/gui/canvas.hpp"
 #include "snake_game/gui/frame_dumper.hpp"
+#include "snake_game/gui/ppm.hpp"
 #include "snake_game/gui/sdl_app.hpp"
 #include "snake_game/gui/sdl_renderer.hpp"
 
@@ -88,7 +89,7 @@ inline int playToFrames(SnakeEnv& env, const ActionFn& act, const std::string& d
 		sdl.render(gui_player::drawable(env));  // draws the final state without counting it as a stride frame
 		char name[32];
 		std::snprintf(name, sizeof name, "/frame-%05d.ppm", written);
-		canvas->writePpm(dir + name);
+		writePpm(canvas->width(), canvas->height(), canvas->pixelsRgb(), dir + name);
 		++written;
 	}
 	return written;
