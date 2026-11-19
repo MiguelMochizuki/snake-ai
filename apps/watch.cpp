@@ -12,6 +12,7 @@
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <random>
 #include <string>
 #include <thread>
 #include <vector>
@@ -72,7 +73,7 @@ void draw(const SnakeEnv& env, int step) {
  *
  * Parameters:
  * int argc: Argument count
- * char** argv: argv[1] is the checkpoint, then optional seed, milliseconds per frame, draw stride and "astar" or "es" (the ES fine-tuned 21-feature network);
+ * char** argv: argv[1] is the checkpoint, then optional seed (a number, or "random", the default), milliseconds per frame, draw stride and "astar" or "es" (the ES fine-tuned 21-feature network);
  * --gui (window) and --frames DIR (off-screen PPM frames) may appear anywhere and need the GUI build
  *
  * Returns int: 0 on success, 1 on bad usage or if the checkpoint cannot be loaded
@@ -94,7 +95,7 @@ int main(int argc, char** argv) {
 	argc = static_cast<int>(args.size());
 	argv = args.data();
 	if (argc < 2) {
-		std::fprintf(stderr, "usage: %s CHECKPOINT [seed=1] [ms per frame=50] [draw every N steps=1] [astar|es] [--gui | --frames DIR]\n", argv[0]);
+		std::fprintf(stderr, "usage: %s CHECKPOINT [seed=random] [ms per frame=50] [draw every N steps=1] [astar|es] [--gui | --frames DIR]\n", argv[0]);
 		return 1;
 	}
 #ifndef SNAKE_AI_HAVE_GUI
@@ -103,7 +104,10 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 #endif
-	unsigned seed = argc > 2 ? static_cast<unsigned>(std::atoi(argv[2])) : 1;
+	// A fresh game every run unless a seed is given, so the network visibly plays whatever board comes up
+	const bool randomSeed = argc <= 2 || std::string(argv[2]) == "random";
+	unsigned seed = randomSeed ? std::random_device{}() % 1000000 : static_cast<unsigned>(std::atoi(argv[2]));
+	std::printf("seed %u (repeat this game with the seed as 2nd argument)\n", seed);
 	int ms = argc > 3 ? std::atoi(argv[3]) : 50;
 	int stride = argc > 4 ? std::max(1, std::atoi(argv[4])) : 1;
 
@@ -155,6 +159,6 @@ int main(int argc, char** argv) {
 	}
 	draw(env, step);
 	std::fputs("\033[?25h", stdout);  // show cursor
-	std::printf("%s after %d steps with score %d\n", interrupted ? "Stopped" : env.score() >= env.maxScore() ? "Board full" : env.dead() ? "Game over" : "Step limit", step, env.score());
+	std::printf("%s after %d steps with score %d (seed %u)\n", interrupted ? "Stopped" : env.score() >= env.maxScore() ? "Board full" : env.dead() ? "Game over" : "Step limit", step, env.score(), seed);
 	return 0;
 }
