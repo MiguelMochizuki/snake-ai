@@ -16,3 +16,5 @@ Logs of the main experiments, run with the binaries built from the reorganized c
 | [bfs_safe.log](bfs_safe.log) | `bfs_safe 12` | BFS with tail test: 392.7 points, 23,327 steps, 12/12 games end in death before filling the board |
 
 Training is not deterministic, so retraining can change losses slightly; the evaluation numbers above match [../REPORT.md](../REPORT.md). The `bfs_safe` log uses 12 games, the report's table 10.
+
+The `smoke` mode of the Phase 0 experiments is a sanity run on 2 games of a 10x10 board. Its output is not a result and no smoke log is kept here: every log above is a `validate` or `test` run.

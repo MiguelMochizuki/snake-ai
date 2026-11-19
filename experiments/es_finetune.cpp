@@ -10,6 +10,8 @@
 #include "nn/checkpoint.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -255,18 +257,19 @@ std::vector<float> startingWeights() {
 }  // namespace
 
 /**
- * Parses a whole positive decimal number
+ * Parses a whole positive, finite decimal number: no leading or trailing whitespace, no inf or nan, no overflow to infinity
  *
  * Parameters:
  * const char* text: The text
  * float& out: Receives the value
  *
- * Returns bool: true if the entire text is one number above zero
+ * Returns bool: true if the entire text is one finite number above zero
  */
 bool parsePositiveFloat(const char* text, float& out) {
+	if (std::isspace(static_cast<unsigned char>(text[0]))) return false;  // strtof would skip it silently
 	char* end = nullptr;
 	const float v = std::strtof(text, &end);
-	if (end == text || *end != '\0' || !(v > 0.0f)) return false;
+	if (end == text || *end != '\0' || !std::isfinite(v) || !(v > 0.0f)) return false;
 	out = v;
 	return true;
 }
@@ -324,7 +327,7 @@ int main(int argc, char** argv) {
 	std::printf("es_finetune: generations %d, threads %d, population %d, sigma %g, lr %g, batch %d episodes of %d foods, starting lengths 25/50/75/90%% of %dx%d\n",
 		generations, threads, cfg.population, cfg.sigma, cfg.lr, BATCH, FOODS, BOARD, BOARD);
 	std::printf("validation start: %.1f steps\n", bestVal);
-	int stale = 0;
+	int stale = 0, bestGen = 0;  // bestGen: generations of training behind the best weights (0 = the starting network)
 	for (int g = 0; g < generations; ++g) {
 		auto batch = batchFor(g, threads);
 		const double net = meanCost(theta, batch), teacher = teacherCost(batch);
@@ -338,6 +341,7 @@ int main(int argc, char** argv) {
 		if (improved) {
 			bestVal = val;
 			best = theta;
+			bestGen = g + 1;
 			stale = 0;
 		} else if (++stale >= PATIENCE) {
 			std::printf("no improvement in %d validations: stopping\n", PATIENCE);
@@ -347,8 +351,8 @@ int main(int argc, char** argv) {
 	nn::Sequential out = makeExtendedNet();
 	setWeights(out, best);
 	const char* path = final ? OUT : TRIAL;
-	nn::save_checkpoint(path, out, nullptr, generations);
-	std::printf("best validation %.1f steps, saved %s\n", bestVal, path);
+	nn::save_checkpoint(path, out, nullptr, bestGen);  // the step is the generation the weights come from, not how long the run lasted
+	std::printf("best validation %.1f steps after %d generations, saved %s\n", bestVal, bestGen, path);
 	if (final) finalTest(best, threads);
 	return 0;
 }

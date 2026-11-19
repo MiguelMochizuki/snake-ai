@@ -178,8 +178,8 @@ Question: can a player beat the safe A\* in steps to fill the board while keepin
 
 | Player (validation, A\* = 15,565.1) | Steps | Change |
 |---|---|---|
-| Oracle (leaked future), K=1 / 3 / 6 | 11,342 / 10,499 / 10,152 | -27.1% / -32.6% / -34.8% |
-| Honest, K=1 M=1 | 11,342 | -27.1% |
+| Oracle (leaked future), K=1 / 3 / 6 | 11,342.5 / 10,499 / 10,152 | -27.1% / -32.6% / -34.8% |
+| Honest, K=1 M=1 | 11,342.5 | -27.1% |
 | Honest, K=3 M=4 / K=6 M=4 / K=6 M=8 | 13,071 / 14,017 / 13,603 | -16.0% / -9.9% / -12.6% |
 | A\* with a breadth-first search in time | 15,632 | +0.4% |
 

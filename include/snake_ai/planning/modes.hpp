@@ -44,7 +44,15 @@ public:
 	 */
 	int act(const SnakeEnv& env, Mode mode);
 
-	/** Same as act(env, mode) but decides from a Snapshot, so rollouts need no SnakeEnv */
+	/**
+	 * Same as act(env, mode) but decides from a Snapshot, so rollouts need no SnakeEnv
+	 *
+	 * Parameters:
+	 * const Snapshot& s: Current game
+	 * Mode mode: As in act(env, mode)
+	 *
+	 * Returns int: STRAIGHT, TURN_RIGHT or TURN_LEFT
+	 */
 	int act(const Snapshot& s, Mode mode);
 
 	/**
@@ -58,7 +66,14 @@ public:
 	 */
 	std::vector<float> features(const SnakeEnv& env);
 
-	/** Same as features(env) but from a Snapshot */
+	/**
+	 * Same as features(env) but from a Snapshot
+	 *
+	 * Parameters:
+	 * const Snapshot& s: Current game
+	 *
+	 * Returns std::vector<float>: FEATURES values, as features(env)
+	 */
 	std::vector<float> features(const Snapshot& s);
 
 	static const int FEATURES = 8;
@@ -76,7 +91,14 @@ public:
 	 */
 	std::vector<float> actionFeatures(const SnakeEnv& env);
 
-	/** Same as actionFeatures(env) but from a Snapshot */
+	/**
+	 * Same as actionFeatures(env) but from a Snapshot
+	 *
+	 * Parameters:
+	 * const Snapshot& s: Current game
+	 *
+	 * Returns std::vector<float>: ACTION_FEATURES values, as actionFeatures(env)
+	 */
 	std::vector<float> actionFeatures(const Snapshot& s);
 
 	static const int EXTRA_PER_ACTION = 3;

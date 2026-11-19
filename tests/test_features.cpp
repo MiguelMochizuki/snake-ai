@@ -5,10 +5,12 @@
  */
 
 #include "doctest/doctest.h"
+#include "snake_ai/env/cycle.hpp"
 #include "snake_ai/planning/modes.hpp"
 #include "snake_ai/policy/astar_policy.hpp"
 #include "nn/checkpoint.hpp"
 
+#include <cstdlib>
 #include <stdexcept>
 
 #ifndef SNAKE_AI_SOURCE_DIR
@@ -66,4 +68,37 @@ TEST_CASE("widened network reproduces the old one") {
 TEST_CASE("loading the old checkpoint directly into the extended net throws") {
 	nn::Sequential wide = makeExtendedNet();
 	CHECK_THROWS(nn::load_checkpoint(CKPT, wide));
+}
+
+TEST_CASE("reachable cells after a move, checked by hand on a 4x4 board") {
+	// Head (1,0) heading right, tail (0,0). Straight is (2,0), right is (1,1), left leaves the board.
+	// Without eating, the tail cell is free again, so only the head cell is out: 15 of 16 cells are reachable.
+	Snapshot s{4, 3, {{1, 0}, {0, 0}}, {3, 3}, 0};
+	SafeAgent agent;
+	std::vector<float> f = agent.extendedFeatures(s);
+	const int base = SafeAgent::ACTION_FEATURES;  // per action: reachable, cycle distance to the tail, cycle distance to the food
+	CHECK(f[base + 0] == doctest::Approx(15.0f / 16.0f));
+	CHECK(f[base + 3] == doctest::Approx(15.0f / 16.0f));
+	CHECK(f[base + 6] == 1.0f);  // blocked: 1, 0, 1
+	CHECK(f[base + 7] == 0.0f);
+	CHECK(f[base + 8] == 1.0f);
+
+	// Eating at (2,0) keeps the tail in the body: 14 cells are reachable, and the cycle distance to the food is 0
+	s.food = {2, 0};
+	f = agent.extendedFeatures(s);
+	CHECK(f[base + 0] == doctest::Approx(14.0f / 16.0f));
+	CHECK(f[base + 2] == 0.0f);
+}
+
+TEST_CASE("cycleDist wraps around and cycleIndex walks to a neighbour each step") {
+	CHECK(cycleDist(5, 5) == 0);
+	CHECK(cycleDist(399, 0) == 1);
+	CHECK(cycleDist(0, 399) == 399);
+	std::vector<std::pair<int, int>> at(CYCLE_LEN);
+	for (int y = 0; y < 20; ++y)
+		for (int x = 0; x < 20; ++x) at[cycleIndex(x, y)] = {x, y};
+	for (int i = 0; i < CYCLE_LEN; ++i) {
+		const auto a = at[i], b = at[(i + 1) % CYCLE_LEN];
+		CHECK(std::abs(a.first - b.first) + std::abs(a.second - b.second) == 1);
+	}
 }
