@@ -91,7 +91,7 @@ snake-ai/
 
 C++17, CMake, [nn-cpp](https://github.com/MiguelMochizuki/nn-cpp) (tensors, autograd, `Sequential`, Adam), [snake-game](https://github.com/MiguelMochizuki/snake-game) (game logic only, no terminal code) and [doctest](https://github.com/doctest/doctest) for the tests. CI runs on GitHub Actions.
 
-Both dependencies are git submodules in `deps/`: `snake-game` at v2.4.0 (headers under `snake_game/`) and `nn-cpp` at v2.0.0.
+Both dependencies are git submodules in `deps/`: `snake-game` at v2.5.0 (headers under `snake_game/`) and `nn-cpp` at v2.0.0.
 
 ## Usage
 
